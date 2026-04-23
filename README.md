@@ -12,3 +12,9 @@ version 3.13.13 https://www.python.org/downloads/windows/
 
 ### environment
 conda create -n sust313 python=3.13 -f environment.yml # install environment for environment.yml
+
+#### activation
+conda activate sust313
+
+#### start programm
+code
