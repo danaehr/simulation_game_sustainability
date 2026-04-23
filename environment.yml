@@ -1,0 +1,44 @@
+name: sust313
+channels:
+  - defaults
+dependencies:
+  - blas=1.0=mkl
+  - bzip2=1.0.8=h2bbff1b_6
+  - ca-certificates=2026.3.19=haa95532_0
+  - intel-openmp=2025.0.0=haa95532_1164
+  - joblib=1.5.3=py313haa95532_0
+  - libexpat=2.7.5=hd7fb8db_0
+  - libffi=3.4.4=hd77b12b_1
+  - libhwloc=2.12.1=default_hfa10c62_1000
+  - libiconv=1.18=hc89ec93_0
+  - libmpdec=4.0.0=h827c3e9_0
+  - libxml2=2.13.9=h6201b9f_0
+  - libzlib=1.3.1=h02ab6af_0
+  - mkl=2025.0.0=h5da7b33_930
+  - mkl-service=2.5.2=py313h0b37514_0
+  - mkl_fft=2.1.1=py313hbc2a22c_0
+  - mkl_random=1.3.0=py313h42c1672_0
+  - numpy=2.4.4=py313h9606935_1
+  - numpy-base=2.4.4=py313h89dd80d_1
+  - openssl=3.5.6=hbb43b14_0
+  - packaging=26.0=py313haa95532_0
+  - pip=26.0.1=pyhc872135_1
+  - python=3.13.13=h39c999c_100_cp313
+  - python_abi=3.13=3_cp313
+  - scikit-learn=1.8.0=py313h7f7e138_0
+  - scipy=1.17.1=py313h97a0a95_1
+  - setuptools=82.0.1=py313haa95532_0
+  - sqlite=3.51.2=hee5a0db_0
+  - tbb=2022.3.0=h90c84d6_0
+  - tbb-devel=2022.3.0=h90c84d6_0
+  - threadpoolctl=3.5.0=py313h4442805_1
+  - tk=8.6.15=hf199647_0
+  - tzdata=2026a=he532380_0
+  - ucrt=10.0.22621.0=haa95532_0
+  - vc=14.42=haa95532_5
+  - vc14_runtime=14.44.35208=h4927774_10
+  - vs2015_runtime=14.44.35208=ha6b5a95_10
+  - wheel=0.46.3=py313haa95532_0
+  - xz=5.8.2=h53af0af_0
+  - zlib=1.3.1=h02ab6af_0
+prefix: C:\Users\dampf\anaconda3\envs\sust313
