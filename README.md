@@ -18,3 +18,11 @@ conda activate sust313
 
 #### start programm
 code
+
+## case 1
+
+### results
+predicted data on daily base until 31.12.2030
+- csv-file
+- code
+- presentation
