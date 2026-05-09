@@ -32,12 +32,12 @@ def reads_columns_from_csv(filename, date_column=['time']):
     return df
 
 
-
 """
     Read all provides CSV files and store its content in a dictonary
 
     Parameters:
     directory (str): The path of the directory which stores all the CSV files
+    name_pattern: pattern for file names
     
     Requirements:
     - columns are separated by commata 
@@ -48,13 +48,13 @@ def reads_columns_from_csv(filename, date_column=['time']):
     dictionary: containing several pandas.DataFrames: each of them representing the provided historical price data of one material. the material itself is the key
 
 """
-def read_all_prices(directory="data\\0_provided"):
+def read_all_prices(directory="data\\0_provided", name_pattern="Price_2026"):
     materials = ["Aluminium","Cobalt","Lithium","Microchips","Steel"]    
     prices = {}
     
     for m in materials:            
         # Define the path to the input CSV file
-        input_file_path = f"{directory}\{m}_Price_2026.csv"
+        input_file_path = f"{directory}\{m}_{name_pattern}.csv"
 
         # Read the input data from the CSV file
         prices[m] = reads_columns_from_csv(input_file_path)
@@ -67,6 +67,7 @@ def read_all_prices(directory="data\\0_provided"):
     Parameters:
     data (pd.dict): Dictonary with all cleaned data: index shows material, values are pd.Dateframes which will be stored 1:1 into csv files
     directory (str): The path of the directory which stores all the CSV files
+    name_pattern: pattern for file names
     
     Requirements:
     - columns are separated by commata 
@@ -77,11 +78,11 @@ def read_all_prices(directory="data\\0_provided"):
     dictionary: containing several pandas.DataFrames: each of them representing the provided historical price data of one material. the material itself is the key
 
 """
-def write_cleaned_prices(data, output_directory="data\\1_cleaned"):
+def write_prices(data, output_directory="data\\1_cleaned", name_pattern="Price_2026_cleaned"):
         
     for m in data:            
         # Define the path to the input CSV file
-        output_file_name = f"{output_directory}\{m}_Price_2026_cleaned.csv"
+        output_file_name = f"{output_directory}\{m}_{name_pattern}.csv"
 
         # Read the input data from the CSV file        
         data[m].to_csv(output_file_name, date_format='%d/%m/%Y')
@@ -196,7 +197,7 @@ if __name__ == '__main__':
     #-----------------------------------------------
     # read all price data
     #-----------------------------------------------
-    prices = read_all_prices(directory="data\\0_provided")
+    prices = read_all_prices(directory="data\\0_provided", name_pattern="Price_2026")
 
     exploration_plots = {}
     for m in prices.keys():
@@ -268,7 +269,7 @@ if __name__ == '__main__':
     # provide clean data
     # write cleaned data to directory
     #------------------------------------        
-    write_cleaned_prices(data = prices_cleaned, output_directory="data\\1_cleaned")
+    write_prices(data = prices_cleaned, output_directory="data\\1_cleaned", name_pattern="Price_2026_cleaned")
     
 
 
