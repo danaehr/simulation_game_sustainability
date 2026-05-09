@@ -3,7 +3,10 @@ import pandas as pd
 
 import matplotlib.pyplot as plt
 
+import copy # copy of dict
 
+
+from statsmodels.tsa.seasonal import seasonal_decompose
 
 #%% define functions
 """
@@ -65,6 +68,7 @@ def read_all_prices(directory="data"):
     Parameters:
     df (pandas.Dataframe): dataframe which containing the data    
     title (string): title of the plot
+    name_pattern (string): constant part of the name of the stored png file (will be enriched by the title)
     output_dir (string; optional): path in which the created plot is saved as png file
 
     Output:
@@ -73,7 +77,7 @@ def read_all_prices(directory="data"):
     plot: 
 
 """
-def explore_data(df,title,output_dir='plots'):
+def explore_data(df,title,name_pattern,output_dir='plots'):
    
     print(f"\n\n ------------------------------ \n {title}\n")
     print(df.describe()) # print statistics for each column of the dataframe
@@ -96,11 +100,67 @@ def explore_data(df,title,output_dir='plots'):
     plt.legend(df.columns)
     plt.title(f"{title}")
     
-    plt.savefig(f"{output_dir}\initial_exploration_{title}.png")
+    plt.savefig(f"{output_dir}\{name_pattern}_{title}.png")
     plt.show()
     
     return plt
 
+def find_outliers(data, method='rmean-std'):
+    if method == 'rmean-std':
+        rolling_mean = data.rolling(window=window_size).mean()
+        rolling_std = data.rolling(window=window_size).std()
+    
+        z_score = (data - rolling_mean)/rolling_std
+        outliers = abs(z_score) > 4 # threshold: 3 standard deviations
+    else:
+        outliers = []
+    
+    return outliers
+
+def replace_outliers(data,outliers, method='seasonal_avg', window_size=360): # data = prices_cleaned[m][comp]
+    data_cleaned = data.copy()
+    
+    if method == 'seasonal_avg':
+        for idx in data_cleaned[outliers].index:
+            #prices_cleaned[m].loc[idx, comp] = rolling_mean.loc[idx]  #replace outlier with 3 times standard deviation
+            idx_before = idx - pd.Timedelta(days=window_size)
+            idx_after = idx + pd.Timedelta(days=window_size)
+            if idx_before in set(data_cleaned.index) and idx_after in set(data_cleaned.index):
+                data_cleaned.loc[idx] = (data_cleaned.loc[idx_before] + data_cleaned.loc[idx_after] ) / 2 #replace outlier with 3 times standard deviation
+            elif idx_before in set(data_cleaned.index):
+                data_cleaned.loc[idx] = data_cleaned.loc[idx_before] #replace outlier with 3 times standard deviation
+            elif idx_after in set(prices_cleaned[m][comp].index):
+                data_cleaned.loc[idx] = data_cleaned.loc[idx_after] #replace outlier with 3 times standard deviation
+            else:
+                data_cleaned.loc[idx]  = data.rolling(window=window_size).mean().loc[idx] # replace by rolling mean
+    
+    elif method == 'decompose_noise':
+        # subtract noise (calculated by decompose method) from outlier values
+        correction_values = decompose(data,window_size)._noise
+        for idx in data_cleaned[outliers].index:
+             data_cleaned.loc[idx] = data_cleaned.loc[idx] - correction_values.loc[idx]
+     
+    
+    return data_cleaned
+
+"""
+    decomposes data with additive seasonality and yearly period
+
+    Parameters:
+    data (pandas.Dataframe): dataseries 
+        
+    Returns:
+    statsmodel.tsa.seasonal.DecomposeResult: Result of decompose
+
+"""
+def decompose(data, period=360):
+    # additive decompose
+    result = seasonal_decompose(
+        data, model='additive',period=period, extrapolate_trend='freq')
+    
+    #result.plot()
+    
+    return result
 
 
 #%%
@@ -114,16 +174,58 @@ if __name__ == '__main__':
 
     exploration_plots = {}
     for m in prices.keys():
-        exploration_plots[m] = explore_data(df=prices[m], title=m, output_dir='plots')
+        exploration_plots[m] = explore_data(df=prices[m], title=m, name_pattern = '00_initial_exploration', output_dir='plots')
+    
+    
+    window_size = 360
+    
+    prices_cleaned = copy.deepcopy(prices)
 
-
-
-
-
-
-
-
-
+    # ------------------------------------
+    # cleaning outliers 
+    # ------------------------------------
+    m = 'Cobalt' # select relevant data
+    
+    for comp in prices_cleaned[m].columns:
+        start = True # initial value to start while loop
+        while start == True or len(outliers[outliers == True]) > 0: # do as long as no outliers are detected
+           
+            data = prices_cleaned[m][comp]
+            
+            # ------------------------------------
+            # find outliers           
+            outliers = find_outliers(data, method='rmean-std')
+            
+            # ------------------------------------
+            # documentate outliers            
+            if start == True:
+                total_outliers = outliers.copy()
+                start = False
+            else:
+                for i in total_outliers.index:
+                    if outliers[i] == True:
+                        total_outliers[i] = outliers[i]
+           
+            # ------------------------------------
+            # replace outliers 
+            prices_cleaned[m][comp] = replace_outliers(data,outliers, method='seasonal_avg', window_size=window_size)
+        
+        # ------------------------------------
+        # plot data, outliers and cleaned data
+        plt.ioff()
+        plt.plot(prices[m][comp], label = m)
+        plt.scatter( prices[m][comp].index[total_outliers], prices[m][comp][total_outliers], color = "red", label="outliers")
+        plt.plot( prices_cleaned[m][comp], color = "grey", label=f"{m} cleaned")
+        plt.title(label = f"{m} - {comp} - outliers")
+        plt.legend()
+        plt.show()
+    
+    cleaned_plots = {}
+    if m in prices_cleaned.keys():
+        cleaned_plots[m] = explore_data(df=prices_cleaned[m], title=f'{m} - no outliers', name_pattern = '01_cleaned_outliers', output_dir='plots')
+            
+    
+    
 
 
 
