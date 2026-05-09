@@ -48,7 +48,7 @@ def reads_columns_from_csv(filename, date_column=['time']):
     dictionary: containing several pandas.DataFrames: each of them representing the provided historical price data of one material. the material itself is the key
 
 """
-def read_all_prices(directory="data"):
+def read_all_prices(directory="data\\0_provided"):
     materials = ["Aluminium","Cobalt","Lithium","Microchips","Steel"]    
     prices = {}
     
@@ -60,6 +60,32 @@ def read_all_prices(directory="data"):
         prices[m] = reads_columns_from_csv(input_file_path)
         
     return prices
+
+"""
+    Write prices in a dictonary, one csv file per material
+
+    Parameters:
+    data (pd.dict): Dictonary with all cleaned data: index shows material, values are pd.Dateframes which will be stored 1:1 into csv files
+    directory (str): The path of the directory which stores all the CSV files
+    
+    Requirements:
+    - columns are separated by commata 
+    - time-column is in format "dd/mm/yyyy"
+    - time-column is called "time" (optional paramete date_column is given if column is called differently)    
+
+    Returns:
+    dictionary: containing several pandas.DataFrames: each of them representing the provided historical price data of one material. the material itself is the key
+
+"""
+def write_cleaned_prices(data, output_directory="data\\1_cleaned"):
+        
+    for m in data:            
+        # Define the path to the input CSV file
+        output_file_name = f"{output_directory}\{m}_Price_2026_cleaned.csv"
+
+        # Read the input data from the CSV file        
+        data[m].to_csv(output_file_name, date_format='%d/%m/%Y')
+    return True
 
 
 """
@@ -170,7 +196,7 @@ if __name__ == '__main__':
     #-----------------------------------------------
     # read all price data
     #-----------------------------------------------
-    prices = read_all_prices(directory="data")
+    prices = read_all_prices(directory="data\\0_provided")
 
     exploration_plots = {}
     for m in prices.keys():
@@ -224,7 +250,7 @@ if __name__ == '__main__':
     if m in prices_cleaned.keys():
         cleaned_plots[m] = explore_data(df=prices_cleaned[m], title=f'{m} - no outliers', name_pattern = '01_cleaned_outliers', output_dir='plots')
             
-    
+    write_cleaned_prices(data = prices_cleaned, output_directory="data\\1_cleaned")
     
 
 
