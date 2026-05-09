@@ -208,48 +208,66 @@ if __name__ == '__main__':
     prices_cleaned = copy.deepcopy(prices)
 
     # ------------------------------------
-    # cleaning outliers 
+    # cleaning data
     # ------------------------------------
-    m = 'Cobalt' # select relevant data
+    for m in prices_cleaned.keys():
     
-    for comp in prices_cleaned[m].columns:
-        start = True # initial value to start while loop
-        while start == True or len(outliers[outliers == True]) > 0: # do as long as no outliers are detected
-           
-            data = prices_cleaned[m][comp]
-            
+        if m == 'Cobalt': 
             # ------------------------------------
-            # find outliers           
-            outliers = find_outliers(data, method='rmean-std')
-            
+            # cleaning outliers 
             # ------------------------------------
-            # documentate outliers            
-            if start == True:
-                total_outliers = outliers.copy()
-                start = False
-            else:
-                for i in total_outliers.index:
-                    if outliers[i] == True:
-                        total_outliers[i] = outliers[i]
-           
-            # ------------------------------------
-            # replace outliers 
-            prices_cleaned[m][comp] = replace_outliers(data,outliers, method='seasonal_avg', window_size=window_size)
-        
-        # ------------------------------------
-        # plot data, outliers and cleaned data
-        plt.ioff()
-        plt.plot(prices[m][comp], label = m)
-        plt.scatter( prices[m][comp].index[total_outliers], prices[m][comp][total_outliers], color = "red", label="outliers")
-        plt.plot( prices_cleaned[m][comp], color = "grey", label=f"{m} cleaned")
-        plt.title(label = f"{m} - {comp} - outliers")
-        plt.legend()
-        plt.show()
+            for comp in prices_cleaned[m].columns:
+                start = True # initial value to start while loop
+                while start == True or len(outliers[outliers == True]) > 0: # do as long as no outliers are detected
+                   
+                    data = prices_cleaned[m][comp]
+                    
+                    # ------------------------------------
+                    # find outliers           
+                    outliers = find_outliers(data, method='rmean-std')
+                    
+                    # ------------------------------------
+                    # documentate outliers            
+                    if start == True:
+                        total_outliers = outliers.copy()
+                        start = False
+                    else:
+                        for i in total_outliers.index:
+                            if outliers[i] == True:
+                                total_outliers[i] = outliers[i]
+                   
+                    # ------------------------------------
+                    # replace outliers 
+                    prices_cleaned[m][comp] = replace_outliers(data,outliers, method='seasonal_avg', window_size=window_size)
+                
+                # ------------------------------------
+                # plot data, outliers and cleaned data
+                plt.ioff()
+                plt.plot(prices[m][comp], label = m)
+                plt.scatter( prices[m][comp].index[total_outliers], prices[m][comp][total_outliers], color = "red", label="outliers")
+                plt.plot( prices_cleaned[m][comp], color = "grey", label=f"{m} cleaned")
+                plt.title(label = f"{m} - {comp} - outliers")
+                plt.legend()
+                plt.show()
     
+        elif m == 'Lithium': 
+            # ------------------------------------
+            # split into several series
+            # ------------------------------------
+            to_do = 'implement this functionality here'
+            
+    #------------------------------------
+    # visualize cleaned data
+    #------------------------------------    
     cleaned_plots = {}
     if m in prices_cleaned.keys():
         cleaned_plots[m] = explore_data(df=prices_cleaned[m], title=f'{m} - no outliers', name_pattern = '01_cleaned_outliers', output_dir='plots')
-            
+     
+    
+    #------------------------------------
+    # provide clean data
+    # write cleaned data to directory
+    #------------------------------------        
     write_cleaned_prices(data = prices_cleaned, output_directory="data\\1_cleaned")
     
 
