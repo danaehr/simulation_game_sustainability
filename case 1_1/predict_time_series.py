@@ -82,14 +82,38 @@ def predict_prices(time_series, start_date, end_date):
 
 if __name__ == '__main__':
     # Define the path to the input CSV file
-    input_file_path = "prices_steel.csv"
+    input_file_path = "./case 1/data/Steel_Price_2026.csv"
 
     # Read the input data from the CSV file
-    input_prices = reads_columns_from_csv(input_file_path)
+    #input_prices = reads_columns_from_csv(input_file_path)
+
+    input_prices = pd.read_csv(
+        input_file_path,
+        sep=',',
+        parse_dates=['time'],
+        index_col='time'
+    )
+    input_prices.index = pd.to_datetime(input_prices.index, dayfirst=True)
 
     # Create a DataFrame of predicted prices and add it to the input data
-    predicted_prices = create_result_data_frame(input_prices)
+    #predicted_prices = create_result_data_frame(input_prices)
+
+    #im doing it this way because its allready calculated in xg_boost.py and it has the least test error
+    predicted_prices = pd.read_csv(
+        "./case 1/data/steel_price_forecast_xgboost.csv",
+        index_col=0
+    )
+
+    # Index korrekt in datetime umwandeln (wichtig!)
+    predicted_prices.index = pd.to_datetime(predicted_prices.index)
+
+    # Jetzt anpassen
+    predicted_prices.columns = input_prices.columns
+    predicted_prices.index.name = input_prices.index.name
+
+
     full_times_series = pd.concat([input_prices, predicted_prices])
 
     # Write the resulting DataFrame to a new CSV file with specified separator, date format, and index label
-    full_times_series.to_csv('predict_'+input_file_path, sep=';', date_format='%d.%m.%Y', index_label='Date')
+    #I assume this is the output format how you would like it. Else please change it here
+    full_times_series.to_csv('final_predict_steel_price.csv', sep=';', date_format='%d.%m.%Y', index_label='Date')
