@@ -9,6 +9,8 @@ import copy # copy of dict
 from sklearn.linear_model import LinearRegression
 
 from datetime import datetime, date, timedelta
+
+from statsmodels.tsa.statespace.sarimax import SARIMAX
 #%% define functions
 """
     Read a CSV file with a specific date format and set the date column as the index.
@@ -104,6 +106,45 @@ def prediction(data,date_from, date_to, method='linear regression'):
         data_predicted = pd.Series(y_predicted.flatten(), index=X_predict.flatten())    
         data_predicted.index = pd.to_datetime(data_predicted.index - date(1970,1,1).toordinal(), unit='D')
     
+    elif method == 'sarimax interleave_9':
+        
+        # interleaving: split data in several parts and put the results together afterwards in order to be able to run with less RAM
+        
+        for i in range(9):
+            #train model
+            # data.iloc[i::9] only keeps every 9th value starting with i+1 position: just to reduce data in order to be able to run it on local PC (unsufficient RAM)
+            model = SARIMAX(
+                data.iloc[i::9],
+                order=(1,1,1),
+                seasonal_order=(1,1,1,40),   # 40 for yearly seasonality (because only every 9th value is in inputdata)
+                enforce_stationarity=False,
+                enforce_invertibility=False
+            )
+            model_trained = model.fit()            
+            
+            # calculate prediction time        
+            days = (date_to - date_from).days + 1
+            number_of_years = int(np.ceil(days/360)) 
+            # forecast (always full years; maybe reduction afterwards to result in desired timespan)
+            forecast = model_trained.get_forecast(steps=40*number_of_years)    # 40 for yearly seasonality (because only every 9th value is in inputdata)
+        
+            # generate output
+            if i == 0:
+                # first prediction
+                data_predicted = forecast.predicted_mean
+            else:
+                # append new prediction to already existing once
+                data_predicted = pd.concat([data_predicted,forecast.predicted_mean]) 
+    
+        # sort index
+        data_predicted = data_predicted.sort_index()
+        
+        # smooth data to avoid noise caused by  interleaving
+        data_predicted.rolling(window=7, center=True).mean() # window = 7 to cover almost all values within 9 values splits
+
+        # reduce data in case forecast was to long
+        data_predicted = data_predicted[data_predicted.index.min():date_to]
+    
     else:
         data_predicted = data.copy()
    
@@ -156,24 +197,47 @@ if __name__ == '__main__':
     date_from = datetime.strptime('2026-06-01','%Y-%m-%d').date()
     date_to = datetime.strptime('2030-12-31','%Y-%m-%d').date()
     
-    output_dir = 'plots'
-    name_pattern = f'02_prediction_{m}'
+    output_dir = 'plots'    
 
     for m in prices_cleaned.keys():
-    
+        name_pattern = f'02_prediction_{m}'
+        
         if m == 'Aluminium': 
-            to_do = 'implement this functionality here'   
             
+            plt.ioff() # turn off direct auto-plot
+            
+            for comp in prices_cleaned[m].columns:
+                # predict prices
+                pred = prediction(prices_cleaned[m][comp], date_from, date_to, method='sarimax interleave_9')
+               
+                # extend index
+                new_index = prices_predicted[m].index.union(pred.index)
+                prices_predicted[m] = prices_predicted[m].reindex(new_index)
+               
+                # store predicted values
+                prices_predicted[m][comp]=pred
+            
+                # ------------------------------------
+                # plot data, outliers and cleaned data
+                plt.plot(prices_cleaned[m][comp], label = comp)
+                plt.plot(prices_predicted[m][comp], label=f"{comp} predicted")
+            
+            
+            plt.title(label = f"{m} - {comp} - prediction")
+            plt.legend()
+            plt.savefig(f"{output_dir}\{name_pattern}.png")
+            plt.show()            
+                
         elif m == 'Cobalt': 
-            to_do = 'implement this functionality here'        
+            print('implement this functionality here')
     
         elif m == 'Lithium': 
-            to_do = 'implement this functionality here'
+            print('implement this functionality here')
         
         elif m == 'Microchips': 
-            plt.ioff()
+            plt.ioff() # turn off direct auto-plot
                         
-            for comp in prices_cleaned[m]:
+            for comp in prices_cleaned[m].columns:
                 # predict prices
                 pred = prediction(prices_cleaned[m][comp], date_from, date_to, method='linear regression')
                
@@ -194,7 +258,7 @@ if __name__ == '__main__':
             plt.savefig(f"{output_dir}\{name_pattern}.png")
             plt.show()
         elif m == 'Steel': 
-           to_do = 'implement this functionality here'
+           print('space for code of case 1-1')
             
     '''
     #------------------------------------

@@ -132,18 +132,42 @@ def explore_data(df,title,name_pattern,output_dir='plots'):
     
     return plt
 
+"""
+    detects outliers in provided data
+
+    Parameters:
+    data (pandas.DataSeries): dataseries that should be checked for outliers   
+    method (string): method used for detecting outliers    
+        
+    Returns:
+    dataSeries: dataSeries with bool values that indicate the positions of outliers (True means outlier)
+
+"""
 def find_outliers(data, method='rmean-std'):
     if method == 'rmean-std':
         rolling_mean = data.rolling(window=window_size).mean()
         rolling_std = data.rolling(window=window_size).std()
     
         z_score = (data - rolling_mean)/rolling_std
-        outliers = abs(z_score) > 4 # threshold: 3 standard deviations
+        outliers = abs(z_score) > 4 # threshold: 4 standard deviations
     else:
         outliers = []
     
     return outliers
 
+"""
+    replaces outliers in provided data
+
+    Parameters:
+    data (pandas.DataSeries): dataseries containing outliers
+    outliers (pandas.DataSeries): dataSeries with bool values that indicate the positions of outliers (True means outlier)
+    method (string): method used for cleaning
+    window_size (int): length of seasonality 
+        
+    Returns:
+    dataSeries: provided data but without outliers; outliers were replaced with suitable values according to selected method
+
+"""
 def replace_outliers(data,outliers, method='seasonal_avg', window_size=360): # data = prices_cleaned[m][comp]
     data_cleaned = data.copy()
     
@@ -249,6 +273,7 @@ if __name__ == '__main__':
                 plt.plot( prices_cleaned[m][comp], color = "grey", label=f"{m} cleaned")
                 plt.title(label = f"{m} - {comp} - outliers")
                 plt.legend()
+                plt.savefig(f"plots\\01_cleaned_outliers_Cobalt_show outliers_{comp}.png")
                 plt.show()
     
         elif m == 'Lithium': 
