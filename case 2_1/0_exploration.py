@@ -4,7 +4,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 #import copy # copy of dict
-import seaborn as sns
+from pandas.plotting import parallel_coordinates
+#import seaborn as sns
 
 
 
@@ -48,21 +49,9 @@ def read_sensor_data_from_csv(directory,name_pattern, numberOfFiles):
     return data_raw, df
 
 
-
-
-
-#%%
-
-if __name__ == '__main__':
-    
+def exploration(data_raw, data_all):
     #-----------------------------------------------
-    # read all sensor data
-    #-----------------------------------------------
-    data_raw, data_all = read_sensor_data_from_csv(directory="sensor_data",name_pattern="sensor_data_machine", numberOfFiles=20)
-    
-    #-----------------------------------------------
-    # explor data_raw
-    #-----------------------------------------------
+    # boxplots
     output_dir = "plots\\00_exploration_boxplots"
     name_pattern = "00_exploration_"    
     for m in data_raw.keys():
@@ -82,6 +71,103 @@ if __name__ == '__main__':
         plt.title(title)
         plt.savefig(f"{output_dir}\{name_pattern}_{title}.png")
         plt.show()    
+
+
+    #-----------------------------------------------
+    # stats array
+    df_stats = data_all.groupby('machineNumber').mean().reset_index()
+    df_stats['temperature_mean'] = (df_stats['TempSensor0']+df_stats['TempSensor1']+df_stats['TempSensor2']+df_stats['TempSensor3'])/4
+    df_stats['vibration_mean'] = (df_stats['VibraSensor0']+df_stats['VibraSensor1']+df_stats['VibraSensor2']+df_stats['VibraSensor3'])/4
+    df_plot_t = df_stats[["machineNumber","TempSensor0","TempSensor1","TempSensor2","TempSensor3"]]
+    df_plot_v = df_stats[["machineNumber","VibraSensor0","VibraSensor1","VibraSensor2","VibraSensor3"]]
+    data_plot = {'temperature':df_plot_t,'vibration':df_plot_v}    
+     
+   
+    #-----------------------------------------------
+    #parallel plot
+    output_dir = "plots"
+    name_pattern = "00_exploration_"    
+    
+    for dim in data_plot.keys():
+    
+        fig, ax = plt.subplots(figsize=(10, 6))
+        parallel_coordinates(
+            data_plot[dim],
+            class_column='machineNumber',   # definiert die Farben
+            colormap='viridis',
+            ax = ax
+        )
+        
+        # legend outside of plot area
+        ax.legend(
+            loc='center left',
+            bbox_to_anchor=(1.02, 0.5),
+            title='machine'
+        )
+        
+        # set title
+        title = f'parallel plot - mean by sensor - {dim}'
+        ax.set_title(title)
+        
+        plt.tight_layout()
+        plt.savefig(f"{output_dir}\{name_pattern}_{title}.png")
+        plt.show()
+        
+    #-----------------------------------------------
+    # scatter plot
+    output_dir = "plots"
+    name_pattern = "00_exploration_"    
+    
+        
+    order = df_stats['machineNumber'].dropna().unique()
+    ax = sns.scatterplot(
+        data=df_stats,
+        x='temperature_mean',
+        y='vibration_mean',
+        hue='machineNumber',        # Farbe
+        hue_order = order,
+        palette=sns.color_palette("husl", len(order))
+    ) 
+    
+    # set title
+    title = f'scatter plot - vibration vs temperature - mean values'
+    ax.set_title(title)
+    
+    # legend outside of plot area
+    ax.legend(
+        loc='center left',
+        bbox_to_anchor=(1.02, 0.5),
+        title='machine'
+    )
+    plt.tight_layout()
+    plt.savefig(f"{output_dir}\{name_pattern}_{title}.png")
+    plt.show()
+    
+    return True
+
+
+#%%
+
+if __name__ == '__main__':
+    
+    #-----------------------------------------------
+    # read all sensor data
+    #-----------------------------------------------
+    data_raw, data_all = read_sensor_data_from_csv(directory="sensor_data",name_pattern="sensor_data_machine", numberOfFiles=20)
+    
+    #-----------------------------------------------
+    # explor data_raw
+    #-----------------------------------------------
+    exploration(data_raw, data_all)
+    
+   
+    
+   
+    
+   
+    
+
+    
 
     #------------------------------------
     # provide clean data
