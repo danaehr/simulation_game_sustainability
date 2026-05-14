@@ -297,13 +297,13 @@ for supplier in suppliers:
 # ------------------------------------------------------------
 
 xgb_forecast_df.to_csv(
-    "./data/3_predictions/lithium_forecast_xgboost.csv"
+    "./data/2_predicted/lithium_forecast_xgboost.csv"
 )
 
 results_df = pd.DataFrame(results)
 
 results_df.to_csv(
-    "./data/3_predictions/lithium_xgboost_model_evaluation.csv",
+    "./data/2_predicted/lithium_xgboost_model_evaluation.csv",
     index=False
 )
 
