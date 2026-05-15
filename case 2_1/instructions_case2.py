@@ -40,9 +40,41 @@ df_train_reverted = df_train_reverted.reset_index(drop=True)
 df_train_reverted["Label"] = df_train_reverted.apply(lambda _: "", axis=1)
 
 #Label the data -> in this example all the data has the same label; you have to change this !!
-df_train_reverted.loc[df_train_reverted["Cycle"] < 0, "Label"] = "Long"
+# long -> all valid data ...
+df_train_reverted.loc[
+    df_train_reverted["Cycle"] >= 0
+                      , "Label"] = "long"
+
+# short -> .. except Temp > 87.5 or Vibration > 1970 
+threshold_short_temp= 97.5 #91.5 # ~ upper quantil
+threshold_short_vibration = 2045 #2008 # ~ upper quantil
+df_train_reverted.loc[
+    (df_train_reverted["TempSensor0"] > threshold_short_temp)
+    | (df_train_reverted["TempSensor1"] > threshold_short_temp)
+    | (df_train_reverted["TempSensor2"] > threshold_short_temp)
+    | (df_train_reverted["TempSensor3"] > threshold_short_temp)
+    | (df_train_reverted["VibraSensor0"] > threshold_short_vibration) 
+    | (df_train_reverted["VibraSensor1"] > threshold_short_vibration) 
+    | (df_train_reverted["VibraSensor2"] > threshold_short_vibration) 
+    | (df_train_reverted["VibraSensor3"] > threshold_short_vibration) 
+                      , "Label"] = "short"
+
+# urgent -> .. except Temp > 90 or Vibration > 1980 
+threshold_urgent_temp= 100
+threshold_urgent_vibration = 2060
+df_train_reverted.loc[
+    (df_train_reverted["TempSensor0"] > threshold_urgent_temp)
+    | (df_train_reverted["TempSensor1"] > threshold_urgent_temp)
+    | (df_train_reverted["TempSensor2"] > threshold_urgent_temp)
+    | (df_train_reverted["TempSensor3"] > threshold_urgent_temp)
+    | (df_train_reverted["VibraSensor0"] > threshold_urgent_vibration) 
+    | (df_train_reverted["VibraSensor1"] > threshold_urgent_vibration) 
+    | (df_train_reverted["VibraSensor2"] > threshold_urgent_vibration) 
+    | (df_train_reverted["VibraSensor3"] > threshold_urgent_vibration) 
+                      , "Label"] = "urgent"
 
 print(df_train_reverted)
+print(df_train_reverted.groupby('Label').count())
 
 
 #%% show details of df_train_reverted
