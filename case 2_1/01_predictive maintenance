@@ -1,0 +1,220 @@
+# =========================================================
+# IMPORTS
+# =========================================================
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report, confusion_matrix, ConfusionMatrixDisplay
+
+# =========================================================
+# LOAD FUNCTION 
+# =========================================================
+
+def read_sensor_data_from_csv(directory, name_pattern, numberOfFiles):
+
+    data_raw = {}
+
+    for i in range(0, numberOfFiles):
+        filename = directory + "/" + name_pattern + "_" + str(i) + ".csv"
+        data_raw[i] = pd.read_csv(filename, sep=',')
+
+    df_cols = ['machineNumber'] + list(data_raw[0].columns)
+    df = pd.DataFrame(columns=df_cols)
+
+    for i in data_raw.keys():
+        df_m = data_raw[i].copy()
+        df_m['machineNumber'] = i
+        df = pd.concat([df, df_m])
+
+    return data_raw, df
+
+
+# =========================================================
+# 1. LOAD DATA
+# =========================================================
+
+data_raw, df = read_sensor_data_from_csv(
+    directory="sensor_data",
+    name_pattern="sensor_data_machine",
+    numberOfFiles=20
+)
+
+print("Machines loaded:", len(data_raw))
+print("Total rows:", len(df))
+
+
+# =========================================================
+# 2. SORT DATA
+# =========================================================
+
+df = df.sort_values(["machineNumber"]).reset_index(drop=True)
+
+# add cycle index per machine
+df["Cycle"] = df.groupby("machineNumber").cumcount()
+
+
+# =========================================================
+# 3. FEATURE ENGINEERING
+# =========================================================
+
+# Average temperature
+df["temp"] = df[
+    ["TempSensor0", "TempSensor1", "TempSensor2", "TempSensor3"]
+].mean(axis=1)
+
+# Average vibration
+df["vibration"] = df[
+    ["VibraSensor0", "VibraSensor1", "VibraSensor2", "VibraSensor3"]
+].mean(axis=1)
+
+
+# =========================================================
+# 4. TIME SERIES FEATURES
+# =========================================================
+
+WINDOW = 10
+
+df["temp_mean_roll"] = df.groupby("machineNumber")["temp"].transform(
+    lambda x: x.rolling(WINDOW).mean()
+)
+
+df["vib_mean_roll"] = df.groupby("machineNumber")["vibration"].transform(
+    lambda x: x.rolling(WINDOW).mean()
+)
+
+df["temp_std_roll"] = df.groupby("machineNumber")["temp"].transform(
+    lambda x: x.rolling(WINDOW).std()
+)
+
+df["vib_std_roll"] = df.groupby("machineNumber")["vibration"].transform(
+    lambda x: x.rolling(WINDOW).std()
+)
+
+df["temp_diff"] = df.groupby("machineNumber")["temp"].diff()
+df["vib_diff"] = df.groupby("machineNumber")["vibration"].diff()
+
+df["temp_lag1"] = df.groupby("machineNumber")["temp"].shift(1)
+df["vib_lag1"] = df.groupby("machineNumber")["vibration"].shift(1)
+
+df["temp_trend"] = df["temp"] - df["temp_lag1"]
+df["vib_trend"] = df["vibration"] - df["vib_lag1"]
+
+
+# =========================================================
+# 5. LABELING (same logic as your exploration code)
+# =========================================================
+
+df["maintenance"] = np.where(
+
+    (df["temp"] > 72) | (df["vibration"] > 1650),
+    "urgent",
+
+    np.where(
+        (df["temp"] > 70) | (df["vibration"] > 1600),
+        "short",
+        "long"
+    )
+)
+
+
+# =========================================================
+# 6. CLEANING
+# =========================================================
+
+df = df.dropna()
+
+
+# =========================================================
+# 7. FEATURES & TARGET
+# =========================================================
+
+X = df[[
+    "temp",
+    "vibration",
+    "temp_mean_roll",
+    "vib_mean_roll",
+    "temp_std_roll",
+    "vib_std_roll",
+    "temp_diff",
+    "vib_diff",
+    "temp_lag1",
+    "vib_lag1",
+    "temp_trend",
+    "vib_trend"
+]]
+
+y = df["maintenance"]
+
+
+# =========================================================
+# 8. TRAIN / TEST SPLIT (by machine, NOT random)
+# =========================================================
+
+# IMPORTANT: time-based split per machine
+split = int(df["Cycle"].max() * 0.8)
+
+train_df = df[df["Cycle"] <= split]
+test_df = df[df["Cycle"] > split]
+
+X_train = train_df[X.columns]
+y_train = train_df["maintenance"]
+
+X_test = test_df[X.columns]
+y_test = test_df["maintenance"]
+
+
+print("Train:", len(X_train))
+print("Test:", len(X_test))
+
+
+# =========================================================
+# 9. MODEL
+# =========================================================
+
+model = RandomForestClassifier(
+    n_estimators=200,
+    max_depth=12,
+    class_weight="balanced",
+    random_state=42
+)
+
+model.fit(X_train, y_train)
+
+
+# =========================================================
+# 10. PREDICTION
+# =========================================================
+
+y_pred = model.predict(X_test)
+
+
+# =========================================================
+# 11. EVALUATION
+# =========================================================
+
+print(classification_report(y_test, y_pred))
+
+cm = confusion_matrix(
+    y_test,
+    y_pred,
+    labels=["long", "short", "urgent"]
+)
+
+print(cm)
+
+
+# =========================================================
+# 12. VISUALIZATION
+# =========================================================
+
+disp = ConfusionMatrixDisplay(
+    confusion_matrix=cm,
+    display_labels=["long", "short", "urgent"]
+)
+
+disp.plot(cmap="Blues")
+plt.title("Predictive Maintenance Confusion Matrix")
+plt.show()
