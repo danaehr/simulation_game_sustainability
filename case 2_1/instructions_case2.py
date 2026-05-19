@@ -3,9 +3,10 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import ConfusionMatrixDisplay
+import seaborn as sns
 
 #%%
-num_machines_to_read = 5
+num_machines_to_read = 20
 
 df_train = pd.DataFrame()
 
@@ -35,46 +36,122 @@ for u_num in unit_numbers_train:
     df_train_reverted = df_temp
 
 #%%
+'''
+    calculates label for machine dataset and defines if maintenance is urgent or needed in short-term or in long-term
+    
+    parameters:
+        df (pd.Dataframe): data which has to be labeled
+        method: defines method of labeling --> basic (just on thresholds), advanced (combination of threshold and historic data)
+    
+    requirements
+        df has to provide several columns
+        
+    output:
+        Dataframe, enriched with column 'Label' (or in case Label already exists: with updated values for this column)
+            
+'''
+def labeling(df,method):
+    if {'Cycle','TempSensor0','TempSensor1','TempSensor2','TempSensor3','VibraSensor0','VibraSensor1','VibraSensor2','VibraSensor3'}.issubset(set(df.columns)):
+        if method == 'basic':
+            # long -> all valid data ...
+            df.loc[
+                df["Cycle"] >= 0
+                                  , "Label"] = "long"
+
+            # short -> .. except Temp > 87.5 or Vibration > 1970 
+            threshold_short_temp= 97.5 #91.5 # ~ upper quantil
+            threshold_short_vibration = 2045 #2008 # ~ upper quantil
+            df.loc[
+                (df["TempSensor0"] > threshold_short_temp)
+                | (df["TempSensor1"] > threshold_short_temp)
+                | (df["TempSensor2"] > threshold_short_temp)
+                | (df["TempSensor3"] > threshold_short_temp)
+                | (df["VibraSensor0"] > threshold_short_vibration) 
+                | (df["VibraSensor1"] > threshold_short_vibration) 
+                | (df["VibraSensor2"] > threshold_short_vibration) 
+                | (df["VibraSensor3"] > threshold_short_vibration) 
+                                  , "Label"] = "short"
+
+            # urgent -> .. except Temp > 90 or Vibration > 1980 
+            threshold_urgent_temp= 100
+            threshold_urgent_vibration = 2060
+            df.loc[
+                (df["TempSensor0"] > threshold_urgent_temp)
+                | (df["TempSensor1"] > threshold_urgent_temp)
+                | (df["TempSensor2"] > threshold_urgent_temp)
+                | (df["TempSensor3"] > threshold_urgent_temp)
+                | (df["VibraSensor0"] > threshold_urgent_vibration) 
+                | (df["VibraSensor1"] > threshold_urgent_vibration) 
+                | (df["VibraSensor2"] > threshold_urgent_vibration) 
+                | (df["VibraSensor3"] > threshold_urgent_vibration) 
+                                  , "Label"] = "urgent"
+        elif method == 'advanced':
+            # long -> all valid data ...
+            df.loc[
+                df["Cycle"] >= 0
+                                  , "Label"] = "long"
+            
+            # short -> .. except Temp > 87.5 or Vibration > 1970 
+            threshold_low_temp= 95 #97.5 #91.5 # ~ upper quantil
+            threshold_low_vibration = 2030 #2045 #2008 # ~ upper quantil
+            
+            threshold_high_temp= 98 #100
+            threshold_high_vibration = 2050 #2060
+            
+            df['LabelScore'] = 0
+            
+            for col in ["TempSensor0","TempSensor1","TempSensor2","TempSensor3"]:
+                df.loc[df[col] > threshold_low_temp,'LabelScore'] += 1
+                df.loc[df[col] > threshold_high_temp,'LabelScore'] += 1
+            
+            for col in ["VibraSensor0","VibraSensor1","VibraSensor2","VibraSensor3"]:
+                df.loc[df[col] > threshold_low_vibration,'LabelScore'] += 10
+                df.loc[df[col] > threshold_high_vibration,'LabelScore'] += 10
+                
+            # short if 1 sensor is > threshold_urgent and at least 1 more sensor is at least threshold_short 
+            # or if at least 3 sensors are > threshold_short
+            df.loc[
+                (df["LabelScore"] % 10 >= 3)
+                | (df["LabelScore"] >= 30)
+                                 , "Label"] = "short"
+            
+            df['Label_1'] = df.groupby('Machine')['Label'].shift(1)
+            df['Label_2'] = df.groupby('Machine')['Label'].shift(2)
+            
+            # urgent -> at least 2 out of last 3 datasets show short  
+            
+            df.loc[
+                ((df["Label"] == 'short') & (df["Label_1"] == 'short'))
+                | ((df["Label"] == 'short') & (df["Label_2"] == 'short'))
+                | ((df["Label_1"] == 'short') & (df["Label_2"] == 'short'))
+                                  , "Label"] = "urgent"
+            
+            # remove unnecessary columns
+            for c in ['LabelScore','Label_1','Label_2']:
+                del df[c]
+            
+        print(df)
+        print(df.groupby('Label').count())    
+        return df                                                          
+    else:
+        print('provided dataframe doesnt have required columns')
+        return df
+
+#%%
+
+
+#Label the data -> in this example all the data has the same label; you have to change this !!
 df_train_reverted = df_train_reverted.reset_index(drop=True)
 
 df_train_reverted["Label"] = df_train_reverted.apply(lambda _: "", axis=1)
 
+df_train_reverted = labeling(df=df_train_reverted,method='advanced')
+
+#%%
+
+
 #Label the data -> in this example all the data has the same label; you have to change this !!
-# long -> all valid data ...
-df_train_reverted.loc[
-    df_train_reverted["Cycle"] >= 0
-                      , "Label"] = "long"
 
-# short -> .. except Temp > 87.5 or Vibration > 1970 
-threshold_short_temp= 97.5 #91.5 # ~ upper quantil
-threshold_short_vibration = 2045 #2008 # ~ upper quantil
-df_train_reverted.loc[
-    (df_train_reverted["TempSensor0"] > threshold_short_temp)
-    | (df_train_reverted["TempSensor1"] > threshold_short_temp)
-    | (df_train_reverted["TempSensor2"] > threshold_short_temp)
-    | (df_train_reverted["TempSensor3"] > threshold_short_temp)
-    | (df_train_reverted["VibraSensor0"] > threshold_short_vibration) 
-    | (df_train_reverted["VibraSensor1"] > threshold_short_vibration) 
-    | (df_train_reverted["VibraSensor2"] > threshold_short_vibration) 
-    | (df_train_reverted["VibraSensor3"] > threshold_short_vibration) 
-                      , "Label"] = "short"
-
-# urgent -> .. except Temp > 90 or Vibration > 1980 
-threshold_urgent_temp= 100
-threshold_urgent_vibration = 2060
-df_train_reverted.loc[
-    (df_train_reverted["TempSensor0"] > threshold_urgent_temp)
-    | (df_train_reverted["TempSensor1"] > threshold_urgent_temp)
-    | (df_train_reverted["TempSensor2"] > threshold_urgent_temp)
-    | (df_train_reverted["TempSensor3"] > threshold_urgent_temp)
-    | (df_train_reverted["VibraSensor0"] > threshold_urgent_vibration) 
-    | (df_train_reverted["VibraSensor1"] > threshold_urgent_vibration) 
-    | (df_train_reverted["VibraSensor2"] > threshold_urgent_vibration) 
-    | (df_train_reverted["VibraSensor3"] > threshold_urgent_vibration) 
-                      , "Label"] = "urgent"
-
-print(df_train_reverted)
-print(df_train_reverted.groupby('Label').count())
 
 
 #%% show details of df_train_reverted
@@ -82,7 +159,7 @@ print(df_train_reverted.groupby('Label').count())
 threshold = 20
 df_plot = df_train_reverted[df_train_reverted['Cycle']<=threshold]
 # 2 Zeilen, 1 Spalte
-fig, axes = plt.subplots(2, 1, figsize=(8, 8), sharex=True)
+fig, axes = plt.subplots(3, 1, figsize=(8, 8), sharex=True)
 # 🔹 Oberes Diagramm: Originaldaten
 axes[0].scatter(df_plot.index, df_plot["TempSensor0"], label="Temp0", color='blue')
 axes[0].scatter(df_plot.index, df_plot["TempSensor1"], label="Temp1", color='grey')
@@ -100,12 +177,19 @@ axes[1].scatter(df_plot.index, df_plot['VibraSensor3'], label="Vibra3", color='b
 axes[1].set_ylabel("vibration")
 axes[1].set_xlabel("cycle")
 axes[1].legend()
+
+axes[2].scatter(df_plot.index, df_plot['Label'], label="Maintenance", color='orange')
+axes[2].set_ylabel("vibration")
+axes[2].set_xlabel("cycle")
+axes[2].legend()
+
 plt.tight_layout()
 
 output_dir = "plots"
 name_pattern = "00_exploring_"     
 plt.savefig(f"{output_dir}\{name_pattern}_{title}.png")
 plt.show()
+
 #%%
 # Do some Preprocessing to get better results (e.g. Rolling Average)
 # ADD Preprocessing Code here
