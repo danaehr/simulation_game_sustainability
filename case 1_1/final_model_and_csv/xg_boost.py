@@ -1,10 +1,10 @@
 """
-XGBoost Forecast für die Stahlpreise
+XGBoost Forecast for Steel Prices
 
-Verwendete Umgebung:
-- Python Version: 3.11 (getestet unter Windows)
-- Ausführung über VS Code / Terminal
-- Wichtige Libraries:
+Environment used:
+- Python version: 3.11 (tested on Windows)
+- Executed using VS Code / terminal
+- Required libraries:
     pandas
     numpy
     matplotlib
@@ -12,16 +12,16 @@ Verwendete Umgebung:
     xgboost
 
 
-Falls Libraries fehlen:
+If libraries are missing:
    pip install pandas numpy matplotlib scikit-learn xgboost
 
-Pfad prüfen:
-   Der Code geht davon aus, dass er aus dem Ordner
-   "simulation_game_sustainability" gestartet wird.
+Check the path:
+   The code assumes it is executed from the folder
+   "simulation_game_sustainability".
 
-Hinweis:
-- Ziel ist es, die jährlichen Schwankungen besser abzubilden als mit SARIMA.
-- Dafür werden zusätzliche Features (z. B. Tag im Jahr, Lags etc.) genutzt.
+Note:
+- The goal is to model yearly fluctuations better than SARIMA.
+- Additional features (e.g. day of year, lags, etc.) are used.
 """
 
 import pandas as pd
@@ -38,62 +38,63 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 def create_features(series):
     """
-    Diese Funktion erzeugt zusätzliche Features aus der Zeitreihe.
+    This function creates additional features from the time series.
 
-    Idee:
-    XGBoost versteht keine Zeit direkt → wir müssen ihm Infos geben,
-    die die zeitliche Struktur beschreiben.
+    Idea:
+    XGBoost does not understand time directly,
+    therefore we need to provide information
+    describing the temporal structure.
 
-    Dazu gehören:
-    - Kalenderinformationen (Monat, Tag im Jahr)
-    - zyklische Features (sin/cos für Jahresverlauf)
-    - Vergangenheitswerte (Lags)
-    - geglättete Werte (rolling mean)
+    This includes:
+    - calendar information (month, day of year)
+    - cyclic features (sin/cos for yearly cycle)
+    - previous values (lags)
+    - smoothed values (rolling mean)
     """
 
     df_feat = pd.DataFrame(index=series.index)
-    df_feat["y"] = series  # Zielvariable
+    df_feat["y"] = series  # target variable
 
-    # --- Kalender-Features ---
-    # Tag im Jahr (1–365)
+    # --- Calendar features ---
+    # Day of year (1–365)
     df_feat["day_of_year"] = df_feat.index.dayofyear
 
-    # Monat (1–12)
+    # Month (1–12)
     df_feat["month"] = df_feat.index.month
 
-    # --- Zyklische Features ---
-    # Idee: Jahresverlauf als Welle darstellen
+    # --- Cyclic features ---
+    # Idea: represent yearly progression as a wave
     df_feat["sin_year"] = np.sin(2 * np.pi * df_feat["day_of_year"] / 365)
     df_feat["cos_year"] = np.cos(2 * np.pi * df_feat["day_of_year"] / 365)
 
-    # --- Lags (Vergangenheit) ---
-    # Modell bekommt Zugriff auf vergangene Werte
+    # --- Lags (past values) ---
+    # Model gets access to previous observations
     df_feat["lag_1"] = df_feat["y"].shift(1)
     df_feat["lag_7"] = df_feat["y"].shift(7)
     df_feat["lag_30"] = df_feat["y"].shift(30)
     df_feat["lag_365"] = df_feat["y"].shift(365)
 
-    # --- Rolling Durchschnitt ---
-    # glättet kurzfristige Schwankungen
+    # --- Rolling average ---
+    # Smooths short-term fluctuations
     df_feat["rolling_30"] = df_feat["y"].shift(1).rolling(30).mean()
 
-    # NaN entfernen (durch Lags entstehen zwangsläufig fehlende Werte)
+    # Remove NaN values created by lag features
     return df_feat.dropna()
 
 
 # ------------------------------------------------------------
-# 2. Daten laden
+# 2. Load Data
 # ------------------------------------------------------------
 
 df = pd.read_csv("./case 1/data/Steel_Price_2026.csv")
 
-# Datum korrekt interpretieren (europäisches Format)
+# Correctly interpret date column (European format)
 df["time"] = pd.to_datetime(df["time"], dayfirst=True)
 df = df.set_index("time")
 
 
 # ------------------------------------------------------------
-# 3. Supplier definieren
+# 3. Define Suppliers
 # ------------------------------------------------------------
 
 suppliers = [
@@ -104,10 +105,10 @@ suppliers = [
 
 
 # ------------------------------------------------------------
-# 4. Forecast Zeitraum
+# 4. Forecast Period
 # ------------------------------------------------------------
 
-# Zeitraum laut Aufgabenstellung
+# Forecast range according to task description
 future_dates = pd.date_range(
     start="2026-06-01",
     end="2030-12-31",
@@ -123,18 +124,18 @@ xgb_forecast_df = pd.DataFrame(index=future_dates)
 results = []
 
 for supplier in suppliers:
-    print("\nXGBoost für:", supplier)
+    print("\nXGBoost for:", supplier)
 
-    # --- Zeitreihe vorbereiten ---
+    # --- Prepare time series ---
     series = df[supplier]
     series = series.asfreq("D")
     series = series.interpolate(method="time")
 
-    # Features erzeugen
+    # Create features
     df_feat = create_features(series)
 
     # --- Train / Test Split ---
-    # ähnlich wie bei SARIMA, um Modellqualität zu prüfen
+    # Similar to SARIMA to evaluate model quality
     train = df_feat.loc[: "2025-01-01"]
     test = df_feat.loc["2025-01-01":]
 
@@ -144,14 +145,14 @@ for supplier in suppliers:
     X_test = test.drop(columns=["y"])
     y_test = test["y"]
 
-    # --- Modell trainieren ---
+    # --- Train model ---
     model = XGBRegressor(n_estimators=100)
     model.fit(X_train, y_train)
 
-    # --- Test-Vorhersage ---
+    # --- Test prediction ---
     test_pred = model.predict(X_test)
 
-    # --- Bewertung ---
+    # --- Evaluation ---
     mae = mean_absolute_error(y_test, test_pred)
     rmse = np.sqrt(mean_squared_error(y_test, test_pred))
 
@@ -166,17 +167,17 @@ for supplier in suppliers:
 
 
     # ------------------------------------------------------------
-    # 6. Zukunft Forecast (iterativ)
+    # 6. Future Forecast (iterative)
     # ------------------------------------------------------------
 
-    # Für zukünftige Tage nur Kalenderfeatures direkt bekannt
+    # For future dates only calendar features are directly known
     future_df = pd.DataFrame(index=future_dates)
     future_df["day_of_year"] = future_df.index.dayofyear
     future_df["month"] = future_df.index.month
     future_df["sin_year"] = np.sin(2 * np.pi * future_df["day_of_year"] / 365)
     future_df["cos_year"] = np.cos(2 * np.pi * future_df["day_of_year"] / 365)
 
-    # Startpunkt = letzte bekannte Daten
+    # Starting point = latest known data
     last_known = df_feat.copy()
 
     preds = []
@@ -184,20 +185,20 @@ for supplier in suppliers:
     for date in future_dates:
         row = future_df.loc[date].copy()
 
-        # Lags werden aus den zuletzt bekannten Werten berechnet
+        # Lags are calculated from latest known values
         row["lag_1"] = last_known["y"].iloc[-1]
         row["lag_7"] = last_known["y"].iloc[-7]
         row["lag_30"] = last_known["y"].iloc[-30]
         row["lag_365"] = last_known["y"].iloc[-365]
 
-        # Rolling Durchschnitt
+        # Rolling average
         row["rolling_30"] = last_known["y"].iloc[-30:].mean()
 
-        # Vorhersage
+        # Prediction
         pred = model.predict(row.values.reshape(1, -1))[0]
         preds.append(pred)
 
-        # neuen Wert anhängen → wichtig für nächste Iteration
+        # Append new value -> important for next iteration
         last_known.loc[date] = row
         last_known.loc[date, "y"] = pred
 
@@ -205,7 +206,7 @@ for supplier in suppliers:
 
 
 # ------------------------------------------------------------
-# 7. Ergebnisse speichern
+# 7. Save Results
 # ------------------------------------------------------------
 
 xgb_forecast_df.to_csv("./case 1/data/steel_price_forecast_xgboost.csv")
@@ -213,7 +214,7 @@ xgb_forecast_df.to_csv("./case 1/data/steel_price_forecast_xgboost.csv")
 results_df = pd.DataFrame(results)
 results_df.to_csv("./case 1/data/xgboost_model_evaluation.csv", index=False)
 
-print("\nXGBoost Ergebnisse:")
+print("\nXGBoost Results:")
 print(results_df)
 
 
@@ -224,20 +225,20 @@ print(results_df)
 plt.figure(figsize=(12, 6))
 
 for supplier in suppliers:
-    # Historische Daten
+    # Historical data
     plt.plot(
         df[supplier],
-        label=f"{supplier} (Historisch)"
+        label=f"{supplier} (Historical)"
     )
     
-    # XGBoost Forecast
+    # XGBoost forecast
     plt.plot(
         xgb_forecast_df[supplier],
         linestyle="--",
         label=f"{supplier} (XGBoost)"
     )
 
-plt.title("XGBoost Forecast aller Supplier (Vergleich)")
+plt.title("XGBoost Forecast for all Suppliers (Comparison)")
 plt.xlabel("time")
 plt.ylabel("steel price")
 

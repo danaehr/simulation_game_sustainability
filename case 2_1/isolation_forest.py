@@ -216,7 +216,7 @@ X_scaled = scaler.fit_transform(X)
 
 model = IsolationForest(
     n_estimators=200,
-    contamination=0.03,
+    contamination=0.003,
     random_state=42
 )
 
@@ -242,8 +242,8 @@ df["weighted_score"] = (
 )
 
 # lower score = worse
-urgent_threshold = df["weighted_score"].quantile(0.03)
-short_threshold = df["weighted_score"].quantile(0.10)
+urgent_threshold = df["weighted_score"].quantile(0.003)
+short_threshold = df["weighted_score"].quantile(0.03)
 
 def map_maintenance(score):
     if score <= urgent_threshold:

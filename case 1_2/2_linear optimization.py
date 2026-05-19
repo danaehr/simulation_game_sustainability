@@ -330,7 +330,7 @@ def calculate_supplier_selection():
     lithium_demand = 14
 
     ### Production budget
-    budget = 2500000
+    budget = 2500000000
     
 
     ### Helpers
