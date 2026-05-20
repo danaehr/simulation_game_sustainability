@@ -190,6 +190,15 @@ df["vib_lag1"] = df.groupby("machineNumber")["vibration"].shift(1)
 df["temp_trend"] = df["temp"] - df["temp_lag1"]
 df["vib_trend"] = df["vibration"] - df["vib_lag1"]
 
+# Maximum temperature
+df["temp_max"] = df[
+    ["TempSensor0", "TempSensor1", "TempSensor2", "TempSensor3"]
+].max(axis=1)
+
+# Maximum vibration
+df["vib_max"] = df[
+    ["VibraSensor0", "VibraSensor1", "VibraSensor2", "VibraSensor3"]
+].max(axis=1)
 
 # =========================================================
 # 5. LABELING (same logic as your exploration code)
@@ -222,6 +231,8 @@ X = df[[
     "temp_lag1",
     "vib_lag1",
     "temp_trend",
+    "temp_max",
+    "vib_max",
     "vib_trend"
 ]]
 
@@ -256,7 +267,11 @@ print("Test:", len(X_test))
 model = RandomForestClassifier(
     n_estimators=200,
     max_depth=12,
-    class_weight="balanced",
+    class_weight={
+    "long": 1,
+    "short": 3,
+    "urgent": 8
+    },
     random_state=42
 )
 
@@ -288,7 +303,7 @@ print(cm)
 # 12. SAVE RESULT
 # =========================================================
 
-joblib.dump(model, "02_prediction_models/advanced_labeling_rf_final_model.pkl")
+joblib.dump(model, "02_prediction_models/improved_model.pkl")
 
 
 # =========================================================
