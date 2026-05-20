@@ -159,6 +159,7 @@ df_train_reverted = labeling(df=df_train_reverted,method='advanced')
 threshold = 20
 df_plot = df_train_reverted[df_train_reverted['Cycle']<=threshold]
 # 2 Zeilen, 1 Spalte
+plt.ioff()
 fig, axes = plt.subplots(3, 1, figsize=(8, 8), sharex=True)
 # 🔹 Oberes Diagramm: Originaldaten
 axes[0].scatter(df_plot.index, df_plot["TempSensor0"], label="Temp0", color='blue')
@@ -187,7 +188,7 @@ plt.tight_layout()
 
 output_dir = "plots"
 name_pattern = "00_exploring_"     
-plt.savefig(f"{output_dir}\{name_pattern}_{title}.png")
+plt.savefig(f"{output_dir}\{name_pattern}_{title}_labeled_advanced.png")
 plt.show()
 
 #%%
