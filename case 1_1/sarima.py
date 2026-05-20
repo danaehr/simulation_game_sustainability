@@ -1,32 +1,32 @@
 """
-SARIMA Forecast für die Stahlpreise
+SARIMA Forecast for Steel Prices
 
-Verwendete Umgebung:
-- Python Version: 3.11 (getestet unter Windows)
-- Ausführung über VS Code / Terminal
-- Wichtige Libraries:
+Environment used:
+- Python version: 3.11 (tested on Windows)
+- Executed using VS Code / terminal
+- Required libraries:
     pandas
     matplotlib
     numpy
     scikit-learn
     statsmodels
 
-Falls Libraries fehlen:
+If libraries are missing:
    pip install pandas matplotlib numpy scikit-learn statsmodels
 
-Falls es Probleme mit Pfaden gibt:
-   Der Code geht davon aus, dass er aus dem Ordner
-   "simulation_game_sustainability" gestartet wird.
-   Ansonsten muss der Pfad zur CSV-Datei angepasst werden.
+If there are path issues:
+   The code assumes it is executed from the folder
+   "simulation_game_sustainability".
+   Otherwise, the path to the CSV file must be adjusted.
 
-Hinweis:
-- Die optimalen SARIMA-Parameter werden aus bereits berechneten CSV-Dateien geladen.
-- Die Grid Search wurde vorher einmal durchgeführt und wird hier nicht erneut ausgeführt,
-  um Rechenzeit zu sparen.
-- Eine Modellierung mit jährlicher Saisonalität (s = 365) wäre theoretisch sinnvoll,
-  da im Datensatz entsprechende Muster erkennbar sind. Allerdings ist SARIMA mit
-  s = 365 sehr speicher- und rechenintensiv, weshalb dies auf der vorhandenen Hardware
-  nicht stabil durchführbar war.
+Note:
+- The optimal SARIMA parameters are loaded from previously generated CSV files.
+- The grid search was executed once beforehand and is not repeated here
+  in order to save computation time.
+- A model with yearly seasonality (s = 365) would theoretically make sense,
+  since corresponding patterns can be observed in the dataset. However,
+  SARIMA with s = 365 is very memory- and computation-intensive and could
+  not be executed reliably on the available hardware.
 """
 
 import ast
@@ -40,13 +40,15 @@ import numpy as np
 
 def evaluate_sarima(series, order, seasonal_order, split_date="2025-01-01"):
     """
-    Diese Funktion bewertet ein SARIMA-Modell.
+    This function evaluates a SARIMA model.
 
-    Dafür wird die vorhandene Zeitreihe in Trainingsdaten und Testdaten aufgeteilt.
-    Das Modell wird nur mit den Trainingsdaten trainiert.
-    Danach wird für den Testzeitraum vorhergesagt und mit den echten Werten verglichen.
+    The existing time series is split into training data and test data.
+    The model is trained only on the training data.
+    Afterwards, predictions are generated for the test period
+    and compared with the real values.
 
-    Dadurch kann man ungefähr sehen, wie gut das Modell auf unbekannte Daten reagiert.
+    This allows an approximate evaluation of how well the model
+    reacts to unseen data.
     """
 
     train = series.loc[:split_date]
@@ -62,13 +64,13 @@ def evaluate_sarima(series, order, seasonal_order, split_date="2025-01-01"):
 
     model_fit = model.fit(disp=False)
 
-    # Vorhersage für genau so viele Tage, wie im Testdatensatz vorhanden sind
+    # Forecast for exactly as many days as available in the test dataset
     forecast = model_fit.forecast(steps=len(test))
 
-    # MAE = durchschnittlicher absoluter Fehler
+    # MAE = average absolute error
     mae = mean_absolute_error(test, forecast)
 
-    # RMSE = Fehlermaß, das größere Fehler stärker bestraft
+    # RMSE = error metric that penalizes larger errors more strongly
     rmse = np.sqrt(mean_squared_error(test, forecast))
 
     return mae, rmse
@@ -76,17 +78,18 @@ def evaluate_sarima(series, order, seasonal_order, split_date="2025-01-01"):
 
 def grid_search_sarima(series, split_date="2025-01-01"):
     """
-    Diese Funktion wurde verwendet, um gute SARIMA-Parameter für s=30 zu finden.
+    This function was used to find suitable SARIMA parameters for s=30.
 
-    Sie wird im aktuellen Ablauf nicht mehr ausgeführt, weil die Ergebnisse bereits
-    in CSV-Dateien gespeichert wurden. Ich lasse die Funktion aber im Code, damit
-    nachvollziehbar bleibt, wie die optimalen Parameter ursprünglich bestimmt wurden.
+    It is no longer executed in the current workflow because the results
+    were already stored in CSV files. The function remains in the code
+    so that the process for determining the optimal parameters
+    stays reproducible.
     """
 
     train = series.loc[:split_date]
     test = series.loc[split_date:]
 
-    # Hier wurde nur s=30 getestet, weil s=365 sehr RAM-intensiv war.
+    # Only s=30 was tested because s=365 required too much RAM.
     search_spaces = [
         {
             "name": "monthly_approximation",
@@ -106,7 +109,7 @@ def grid_search_sarima(series, split_date="2025-01-01"):
     all_results = []
 
     for space in search_spaces:
-        print("\nTeste Suchraum:", space["name"], "mit s =", space["s"])
+        print("\nTesting search space:", space["name"], "with s =", space["s"])
 
         for pi in space["p"]:
             for di in space["d"]:
@@ -147,7 +150,7 @@ def grid_search_sarima(series, split_date="2025-01-01"):
                                         best_seasonal_order = seasonal_order
 
                                 except Exception as e:
-                                    print("Fehler bei", order, seasonal_order, "->", str(e)[:80])
+                                    print("Error for", order, seasonal_order, "->", str(e)[:80])
                                     continue
 
     return best_order, best_seasonal_order, best_rmse, all_results
@@ -155,22 +158,23 @@ def grid_search_sarima(series, split_date="2025-01-01"):
 
 def load_best_params_from_csv(supplier):
     """
-    Hier werden die bereits getesteten Grid-Search-Ergebnisse geladen.
+    Previously tested grid search results are loaded here.
 
-    In den CSV-Dateien stehen mehrere getestete SARIMA-Kombinationen.
-    Die Zeile mit dem kleinsten RMSE wird ausgewählt, weil kleinerer RMSE
-    bedeutet, dass das Modell im Testzeitraum besser abgeschnitten hat.
+    The CSV files contain several tested SARIMA combinations.
+    The row with the smallest RMSE is selected because
+    a smaller RMSE means the model performed better
+    during the test period.
     """
 
     file_path = f"./case 1/data/sarima_grid_results_{supplier}.csv"
 
     results_df = pd.read_csv(file_path)
 
-    # Die beste Zeile ist die mit dem kleinsten RMSE
+    # The best row is the one with the smallest RMSE
     best_row = results_df.loc[results_df["RMSE"].idxmin()]
 
-    # In der CSV stehen order und seasonal_order als Text.
-    # ast.literal_eval wandelt "(2, 0, 1)" wieder in ein echtes Tuple um.
+    # In the CSV, order and seasonal_order are stored as text.
+    # ast.literal_eval converts "(2, 0, 1)" back into a real tuple.
     best_order = ast.literal_eval(best_row["order"])
     best_seasonal_order = ast.literal_eval(best_row["seasonal_order"])
 
@@ -182,11 +186,15 @@ def load_best_params_from_csv(supplier):
 
 def train_and_forecast(series, steps, order, seasonal_order):
     """
-    Diese Funktion trainiert das finale SARIMA-Modell auf der kompletten historischen Zeitreihe.
+    This function trains the final SARIMA model
+    using the complete historical time series.
 
-    Danach wird für die gewünschte Anzahl an Tagen in die Zukunft vorhergesagt.
-    Für die finale Prognose wird also nicht mehr in Train/Test aufgeteilt,
-    sondern alles genutzt, was historisch vorhanden ist.
+    Afterwards, predictions are generated for the desired
+    number of future days.
+
+    For the final forecast, the data is no longer split
+    into training and test sets.
+    Instead, all available historical data is used.
     """
 
     model = SARIMAX(
@@ -199,29 +207,32 @@ def train_and_forecast(series, steps, order, seasonal_order):
 
     model_fit = model.fit(disp=False)
 
-    # Forecast für den kompletten zukünftigen Zeitraum
+    # Forecast for the complete future period
     forecast = model_fit.forecast(steps=steps)
 
     return forecast
 
 
 # ------------------------------------------------------------
-# 1. Daten laden
+# 1. Load Data
 # ------------------------------------------------------------
 
-# Annahme: Der Code wird aus dem Ordner simulation_game_sustainability gestartet.
+# Assumption: The code is executed from the folder
+# "simulation_game_sustainability".
 df = pd.read_csv("./case 1/data/Steel_Price_2026.csv")
 
-# Die time-Spalte liegt im europäischen Format vor, also z.B. 13/01/2017.
-# Deshalb dayfirst=True, damit pandas Tag und Monat richtig interpretiert.
+# The time column uses European date format,
+# e.g. 13/01/2017.
+# Therefore, dayfirst=True is required so pandas
+# correctly interprets day and month.
 df["time"] = pd.to_datetime(df["time"], dayfirst=True)
 
-# Für Zeitreihenmodelle ist es sinnvoll, das Datum als Index zu setzen.
+# For time series models it is useful to set the date as index.
 df = df.set_index("time")
 
 
 # ------------------------------------------------------------
-# 2. Supplier definieren
+# 2. Define Suppliers
 # ------------------------------------------------------------
 
 suppliers = [
@@ -232,62 +243,64 @@ suppliers = [
 
 
 # ------------------------------------------------------------
-# 3. Zeitreihen vorbereiten
+# 3. Prepare Time Series
 # ------------------------------------------------------------
 
 series_dict = {}
 
 for supplier in suppliers:
-    # Für jeden Supplier wird eine eigene Zeitreihe erstellt.
+    # Create a separate time series for each supplier
     series = df[supplier]
 
-    # Sicherstellen, dass wirklich tägliche Werte vorliegen.
-    # Falls einzelne Tage fehlen, entstehen dadurch zunächst NaN-Werte.
+    # Ensure that daily values exist
+    # Missing days initially produce NaN values
     series = series.asfreq("D")
 
-    # Fehlende Werte werden zeitbasiert interpoliert.
-    # Das ist hier eher zur Sicherheit, falls einzelne Tage fehlen sollten.
+    # Missing values are interpolated using time-based interpolation
+    # This is mainly a safeguard in case individual days are missing
     series = series.interpolate(method="time")
 
-    # Die vorbereitete Zeitreihe wird gespeichert.
+    # Store the prepared time series
     series_dict[supplier] = series
 
 
 # ------------------------------------------------------------
-# 4. Forecast-Zeitraum definieren
+# 4. Define Forecast Period
 # ------------------------------------------------------------
 
-# Laut Aufgabenstellung sollen die täglichen Preise vom 01.06.2026 bis 31.12.2030 vorhergesagt werden.
+# According to the task description,
+# daily prices should be forecasted
+# from 01.06.2026 until 31.12.2030.
 future_dates = pd.date_range(
     start="2026-06-01",
     end="2030-12-31",
     freq="D"
 )
 
-# Anzahl der Tage, die vorhergesagt werden müssen
+# Number of days that need to be predicted
 steps = len(future_dates)
 
 
 # ------------------------------------------------------------
-# 5. Beste Parameter laden und Forecast berechnen
+# 5. Load Best Parameters and Create Forecast
 # ------------------------------------------------------------
 
 forecast_dict = {}
 results = []
 
 for supplier, series in series_dict.items():
-    print("\nLade beste Parameter aus CSV für:", supplier)
+    print("\nLoading best parameters from CSV for:", supplier)
 
-    # Statt die Grid Search nochmal laufen zu lassen,
-    # werden die bereits gespeicherten Ergebnisse geladen.
+    # Instead of running grid search again,
+    # the previously saved results are loaded.
     best_order, best_seasonal_order, mae, rmse = load_best_params_from_csv(supplier)
 
-    print("Beste Parameter:", best_order, best_seasonal_order)
+    print("Best parameters:", best_order, best_seasonal_order)
     print("MAE:", mae)
     print("RMSE:", rmse)
 
-    # Mit den besten Parametern wird jetzt das finale Modell trainiert
-    # und anschließend bis Ende 2030 vorhergesagt.
+    # Train the final model with the best parameters
+    # and forecast until the end of 2030.
     forecast = train_and_forecast(
         series,
         steps,
@@ -297,8 +310,8 @@ for supplier, series in series_dict.items():
 
     forecast_dict[supplier] = forecast
 
-    # Ergebnisse speichern, damit später nachvollziehbar ist,
-    # welche Parameter für welchen Supplier verwendet wurden.
+    # Save results so it remains reproducible
+    # which parameters were used for which supplier.
     results.append({
         "Supplier": supplier,
         "Best order": best_order,
@@ -309,7 +322,7 @@ for supplier, series in series_dict.items():
 
 
 # ------------------------------------------------------------
-# 6. Forecast-Tabelle erstellen und speichern
+# 6. Create and Save Forecast Table
 # ------------------------------------------------------------
 
 forecast_df = pd.DataFrame(index=future_dates)
@@ -321,7 +334,7 @@ forecast_df.to_csv("./case 1/data/steel_price_forecast_sarima.csv")
 
 
 # ------------------------------------------------------------
-# 7. Bewertungsdaten speichern
+# 7. Save Evaluation Data
 # ------------------------------------------------------------
 
 results_df = pd.DataFrame(results)
@@ -331,17 +344,17 @@ print(results_df)
 
 
 # ------------------------------------------------------------
-# 8. Plots erstellen
+# 8. Create Plots
 # ------------------------------------------------------------
 
 plt.figure(figsize=(12, 6))
 
 for supplier in series_dict:
-    # Historische Daten
+    # Historical data
     plt.plot(
         series_dict[supplier].index,
         series_dict[supplier],
-        label=f"{supplier} (Historisch)"
+        label=f"{supplier} (Historical)"
     )
     
     # Forecast
@@ -352,7 +365,7 @@ for supplier in series_dict:
         label=f"{supplier} (Forecast)"
     )
 
-plt.title("Stahlpreise aller Supplier (Historisch + Forecast)")
+plt.title("Steel Prices of all Suppliers (Historical + Forecast)")
 plt.xlabel("time")
 plt.ylabel("steel price")
 

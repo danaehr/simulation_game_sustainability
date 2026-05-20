@@ -1,0 +1,305 @@
+# =========================================================
+# IMPORTS
+# =========================================================
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report, confusion_matrix, ConfusionMatrixDisplay
+
+import joblib
+
+# =========================================================
+# LOAD FUNCTION 
+# =========================================================
+
+def read_sensor_data_from_csv(directory, name_pattern, numberOfFiles):
+
+    data_raw = {}
+
+    for i in range(0, numberOfFiles):
+        filename = directory + "/" + name_pattern + "_" + str(i) + ".csv"
+        data_raw[i] = pd.read_csv(filename, sep=',')
+
+    df_cols = ['machineNumber'] + list(data_raw[0].columns)
+    df = pd.DataFrame(columns=df_cols)
+
+    for i in data_raw.keys():
+        df_m = data_raw[i].copy()
+        df_m['machineNumber'] = i
+        df = pd.concat([df, df_m])
+
+    return data_raw, df
+
+# =========================================================
+# LABELING FUNCTION
+# =========================================================
+
+def labeling(df, method):
+    required_cols = {
+        "Cycle",
+        "TempSensor0", "TempSensor1", "TempSensor2", "TempSensor3",
+        "VibraSensor0", "VibraSensor1", "VibraSensor2", "VibraSensor3"
+    }
+
+    if not required_cols.issubset(set(df.columns)):
+        print("Provided dataframe does not have required columns.")
+        return df
+
+    if method == "basic":
+        df.loc[df["Cycle"] >= 0, "Label"] = "long"
+
+        threshold_short_temp = 97.5
+        threshold_short_vibration = 2045
+
+        df.loc[
+            (df["TempSensor0"] > threshold_short_temp)
+            | (df["TempSensor1"] > threshold_short_temp)
+            | (df["TempSensor2"] > threshold_short_temp)
+            | (df["TempSensor3"] > threshold_short_temp)
+            | (df["VibraSensor0"] > threshold_short_vibration)
+            | (df["VibraSensor1"] > threshold_short_vibration)
+            | (df["VibraSensor2"] > threshold_short_vibration)
+            | (df["VibraSensor3"] > threshold_short_vibration),
+            "Label"
+        ] = "short"
+
+        threshold_urgent_temp = 100
+        threshold_urgent_vibration = 2060
+
+        df.loc[
+            (df["TempSensor0"] > threshold_urgent_temp)
+            | (df["TempSensor1"] > threshold_urgent_temp)
+            | (df["TempSensor2"] > threshold_urgent_temp)
+            | (df["TempSensor3"] > threshold_urgent_temp)
+            | (df["VibraSensor0"] > threshold_urgent_vibration)
+            | (df["VibraSensor1"] > threshold_urgent_vibration)
+            | (df["VibraSensor2"] > threshold_urgent_vibration)
+            | (df["VibraSensor3"] > threshold_urgent_vibration),
+            "Label"
+        ] = "urgent"
+
+    elif method == "advanced":
+        df.loc[df["Cycle"] >= 0, "Label"] = "long"
+
+        threshold_low_temp = 94
+        threshold_low_vibration = 2010
+
+        threshold_high_temp = 97
+        threshold_high_vibration = 2040
+
+        df["LabelScore"] = 0
+
+        for col in ["TempSensor0", "TempSensor1", "TempSensor2", "TempSensor3"]:
+            df.loc[df[col] > threshold_low_temp, "LabelScore"] += 1
+            df.loc[df[col] > threshold_high_temp, "LabelScore"] += 1
+
+        for col in ["VibraSensor0", "VibraSensor1", "VibraSensor2", "VibraSensor3"]:
+            df.loc[df[col] > threshold_low_vibration, "LabelScore"] += 10
+            df.loc[df[col] > threshold_high_vibration, "LabelScore"] += 10
+
+        df.loc[
+            (df["LabelScore"] % 10 >= 3)
+            | (df["LabelScore"] >= 30),
+            "Label"
+        ] = "short"
+
+        df["Label_1"] = df.groupby("machineNumber")["Label"].shift(1)
+        df["Label_2"] = df.groupby("machineNumber")["Label"].shift(2)
+
+        df.loc[
+            ((df["Label"] == "short") & (df["Label_1"] == "short"))
+            | ((df["Label"] == "short") & (df["Label_2"] == "short"))
+            | ((df["Label_1"] == "short") & (df["Label_2"] == "short")),
+            "Label"
+        ] = "urgent"
+
+        df = df.drop(columns=["LabelScore", "Label_1", "Label_2"])
+
+    return df
+
+# =========================================================
+# 1. LOAD DATA
+# =========================================================
+
+data_raw, df = read_sensor_data_from_csv(
+    directory="sensor_data",
+    name_pattern="sensor_data_machine",
+    numberOfFiles=20
+)
+
+print("Machines loaded:", len(data_raw))
+print("Total rows:", len(df))
+
+
+# =========================================================
+# 2. SORT DATA
+# =========================================================
+
+df = df.sort_values(["machineNumber"]).reset_index(drop=True)
+
+# add cycle index per machine
+df["Cycle"] = df.groupby("machineNumber").cumcount()
+
+
+# =========================================================
+# 3. FEATURE ENGINEERING
+# =========================================================
+
+# Average temperature
+df["temp"] = df[
+    ["TempSensor0", "TempSensor1", "TempSensor2", "TempSensor3"]
+].mean(axis=1)
+
+# Average vibration
+df["vibration"] = df[
+    ["VibraSensor0", "VibraSensor1", "VibraSensor2", "VibraSensor3"]
+].mean(axis=1)
+
+
+# =========================================================
+# 4. TIME SERIES FEATURES
+# =========================================================
+
+WINDOW = 10
+
+df["temp_mean_roll"] = df.groupby("machineNumber")["temp"].transform(
+    lambda x: x.rolling(WINDOW).mean()
+)
+
+df["vib_mean_roll"] = df.groupby("machineNumber")["vibration"].transform(
+    lambda x: x.rolling(WINDOW).mean()
+)
+
+df["temp_std_roll"] = df.groupby("machineNumber")["temp"].transform(
+    lambda x: x.rolling(WINDOW).std()
+)
+
+df["vib_std_roll"] = df.groupby("machineNumber")["vibration"].transform(
+    lambda x: x.rolling(WINDOW).std()
+)
+
+df["temp_diff"] = df.groupby("machineNumber")["temp"].diff()
+df["vib_diff"] = df.groupby("machineNumber")["vibration"].diff()
+
+df["temp_lag1"] = df.groupby("machineNumber")["temp"].shift(1)
+df["vib_lag1"] = df.groupby("machineNumber")["vibration"].shift(1)
+
+df["temp_trend"] = df["temp"] - df["temp_lag1"]
+df["vib_trend"] = df["vibration"] - df["vib_lag1"]
+
+
+# =========================================================
+# 5. LABELING (same logic as your exploration code)
+# =========================================================
+
+df["Label"] = ""
+df = labeling(df=df, method="advanced")
+
+
+# =========================================================
+# 6. CLEANING
+# =========================================================
+
+df = df.dropna()
+
+
+# =========================================================
+# 7. FEATURES & TARGET
+# =========================================================
+
+X = df[[
+    "temp",
+    "vibration",
+    "temp_mean_roll",
+    "vib_mean_roll",
+    "temp_std_roll",
+    "vib_std_roll",
+    "temp_diff",
+    "vib_diff",
+    "temp_lag1",
+    "vib_lag1",
+    "temp_trend",
+    "vib_trend"
+]]
+
+y = df["Label"]
+
+
+# =========================================================
+# 8. TRAIN / TEST SPLIT (by machine, NOT random)
+# =========================================================
+
+# IMPORTANT: time-based split per machine
+split = int(df["Cycle"].max() * 0.8)
+
+train_df = df[df["Cycle"] <= split]
+test_df = df[df["Cycle"] > split]
+
+X_train = train_df[X.columns]
+y_train = train_df["Label"]
+
+X_test = test_df[X.columns]
+y_test = test_df["Label"]
+
+
+print("Train:", len(X_train))
+print("Test:", len(X_test))
+
+
+# =========================================================
+# 9. MODEL
+# =========================================================
+
+model = RandomForestClassifier(
+    n_estimators=200,
+    max_depth=12,
+    class_weight="balanced",
+    random_state=42
+)
+
+model.fit(X_train, y_train)
+
+
+# =========================================================
+# 10. PREDICTION
+# =========================================================
+
+y_pred = model.predict(X_test)
+
+
+# =========================================================
+# 11. EVALUATION
+# =========================================================
+
+print(classification_report(y_test, y_pred))
+
+cm = confusion_matrix(
+    y_test,
+    y_pred,
+    labels=["long", "short", "urgent"]
+)
+
+print(cm)
+
+# =========================================================
+# 12. SAVE RESULT
+# =========================================================
+
+joblib.dump(model, "02_prediction_models/advanced_labeling_rf_final_model.pkl")
+
+
+# =========================================================
+# 13. VISUALIZATION
+# =========================================================
+
+disp = ConfusionMatrixDisplay(
+    confusion_matrix=cm,
+    display_labels=["long", "short", "urgent"]
+)
+
+disp.plot(cmap="Blues")
+plt.title("Predictive Maintenance Confusion Matrix")
+plt.show()
