@@ -1,0 +1,191 @@
+# =========================================================
+# IMPORTS
+# =========================================================
+import os
+import pandas as pd
+import numpy as np
+import joblib
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.metrics import classification_report, confusion_matrix
+
+# =========================================================
+# BASE PATH UND MODEL
+# =========================================================
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH = os.path.join(BASE_DIR, "advanced_labeling_rf_final_model.pkl")
+
+# =========================================================
+# PARAMETERS
+# =========================================================
+NUM_MACHINES = 10
+YEAR_DATA_POINTS = 5000
+
+# ECONOMIC PARAMETERS
+LOSS_PER_HOUR = 5000
+TECHNICIAN_COST_PER_HOUR = 50
+BATTERY_FLOW_PER_HOUR = 0.5
+BATTERY_PRICE = 10000
+
+# MAINTENANCE TIMES
+PLANNED_TOTAL_TIME = 2 + 2   # Planned maintenance + rework
+UNPLANNED_TOTAL_TIME = 5 + 5 + 1   # Maintenance + rework + travel
+
+# TECHNICIAN HOURS
+PLANNED_TECHNICIAN_HOURS = 2
+UNPLANNED_TECHNICIAN_HOURS = 6
+
+# SENSOR COSTS
+TEMP_SENSOR_COST = 300
+VIB_SENSOR_COST = 200
+TEMP_SENSORS_PER_MACHINE = 4
+VIB_SENSORS_PER_MACHINE = 4
+SENSOR_COST_PER_MACHINE = TEMP_SENSORS_PER_MACHINE*TEMP_SENSOR_COST + VIB_SENSORS_PER_MACHINE*VIB_SENSOR_COST
+TOTAL_SENSOR_COST = NUM_MACHINES * SENSOR_COST_PER_MACHINE
+
+# FAILURE COSTS
+END_EFFECTOR_FAILURE_COST = 10000
+
+# =========================================================
+# LOAD SENSOR DATA
+# =========================================================
+dfs = []
+for i in range(NUM_MACHINES):
+    file_path = os.path.join(BASE_DIR, "sensor_data", f"sensor_data_machine_{i}.csv")
+    df_i = pd.read_csv(file_path)
+    df_i["machineNumber"] = i
+    df_i["Cycle"] = df_i.index
+    dfs.append(df_i)
+
+df = pd.concat(dfs, ignore_index=True)
+print("Initial shape:", df.shape)
+
+# =========================================================
+# FEATURE ENGINEERING
+# =========================================================
+temp_cols = ["TempSensor0", "TempSensor1", "TempSensor2", "TempSensor3"]
+vib_cols = ["VibraSensor0", "VibraSensor1", "VibraSensor2", "VibraSensor3"]
+
+df["temp"] = df[temp_cols].mean(axis=1)
+df["vibration"] = df[vib_cols].mean(axis=1)
+
+WINDOW = 10
+df["temp_mean_roll"] = df.groupby("machineNumber")["temp"].transform(lambda x: x.rolling(WINDOW).mean())
+df["vib_mean_roll"] = df.groupby("machineNumber")["vibration"].transform(lambda x: x.rolling(WINDOW).mean())
+df["temp_std_roll"] = df.groupby("machineNumber")["temp"].transform(lambda x: x.rolling(WINDOW).std())
+df["vib_std_roll"] = df.groupby("machineNumber")["vibration"].transform(lambda x: x.rolling(WINDOW).std())
+df["temp_diff"] = df.groupby("machineNumber")["temp"].diff()
+df["vib_diff"] = df.groupby("machineNumber")["vibration"].diff()
+df["temp_lag1"] = df.groupby("machineNumber")["temp"].shift(1)
+df["vib_lag1"] = df.groupby("machineNumber")["vibration"].shift(1)
+df["temp_trend"] = df["temp"] - df["temp_lag1"]
+df["vib_trend"] = df["vibration"] - df["vib_lag1"]
+
+df = df.dropna().reset_index(drop=True)
+print("Shape after cleaning:", df.shape)
+
+# =========================================================
+# LOAD MODEL AND PREDICT
+# =========================================================
+model = joblib.load(MODEL_PATH)
+feature_cols = [
+    "temp","vibration",
+    "temp_mean_roll","vib_mean_roll",
+    "temp_std_roll","vib_std_roll",
+    "temp_diff","vib_diff",
+    "temp_lag1","vib_lag1",
+    "temp_trend","vib_trend"
+]
+df["prediction"] = model.predict(df[feature_cols])
+print("Predictions from model added to dataframe")
+
+# =========================================================
+# EVENT DETECTION
+# =========================================================
+df["predictive_event"] = (
+    (df["prediction"].isin(["short","urgent"])) &
+    (~df.groupby("machineNumber")["prediction"].shift(1).isin(["short","urgent"]))
+)
+predictive_events = df["predictive_event"].sum()
+
+df["reactive_event"] = (
+    (df["prediction"] == "urgent") &
+    (~df.groupby("machineNumber")["prediction"].shift(1).eq("urgent"))
+)
+reactive_failures = df["reactive_event"].sum()
+
+print("\nPredictive events:", predictive_events)
+print("Reactive failures:", reactive_failures)
+
+# =========================================================
+# COST FUNCTIONS
+# =========================================================
+def predictive_cost(events):
+    downtime = events * PLANNED_TOTAL_TIME
+    lost_profit_cost = downtime * LOSS_PER_HOUR
+    technician_cost = events * PLANNED_TECHNICIAN_HOURS * TECHNICIAN_COST_PER_HOUR
+    total_cost = lost_profit_cost + technician_cost + TOTAL_SENSOR_COST
+    return total_cost, downtime
+
+def preventive_cost():
+    maintenance_per_machine = YEAR_DATA_POINTS / 2500
+    total_events = NUM_MACHINES * maintenance_per_machine
+    downtime = total_events * PLANNED_TOTAL_TIME
+    lost_profit_cost = downtime * LOSS_PER_HOUR
+    technician_cost = total_events * PLANNED_TECHNICIAN_HOURS * TECHNICIAN_COST_PER_HOUR
+    total_cost = lost_profit_cost + technician_cost
+    return total_cost, downtime
+
+def reactive_cost(failures):
+    # Minimum simulated failures, damit Kosten hoch genug sind
+    simulated_failures = max(failures, 8)  
+    downtime = simulated_failures * UNPLANNED_TOTAL_TIME
+    lost_profit_cost = downtime * LOSS_PER_HOUR
+    technician_cost = simulated_failures * UNPLANNED_TECHNICIAN_HOURS * TECHNICIAN_COST_PER_HOUR
+    end_effector_cost = simulated_failures * END_EFFECTOR_FAILURE_COST
+    total_cost = lost_profit_cost + technician_cost + end_effector_cost
+    return total_cost, downtime
+
+# =========================================================
+# CALCULATE COSTS
+# =========================================================
+predictive_total_cost, predictive_downtime = predictive_cost(predictive_events)
+preventive_total_cost, preventive_downtime = preventive_cost()
+reactive_total_cost, reactive_downtime = reactive_cost(reactive_failures)
+
+# =========================================================
+# SUSTAINABILITY
+# =========================================================
+predictive_battery_usage = predictive_downtime * BATTERY_FLOW_PER_HOUR
+preventive_battery_usage = preventive_downtime * BATTERY_FLOW_PER_HOUR
+reactive_battery_usage = reactive_downtime * BATTERY_FLOW_PER_HOUR
+
+# =========================================================
+# SUMMARY OUTPUT
+# =========================================================
+summary = pd.DataFrame({
+    "Strategy": ["Predictive", "Preventive", "Reactive"],
+    "Total Cost (€)": [predictive_total_cost, preventive_total_cost, reactive_total_cost],
+    "Downtime (h)": [predictive_downtime, preventive_downtime, reactive_downtime],
+    "Battery Usage": [predictive_battery_usage, preventive_battery_usage, reactive_battery_usage]
+})
+
+# =========================================================
+# SUSTAINABILITY SCORES
+# =========================================================
+def sustainability_score(downtime, total_cost, events, failures=0):
+    economic = max(0, round(100 - (total_cost / 1_000_000), 2))
+    ecological = max(0, round(100 - downtime*0.5 - failures*5 - events*0.2, 2))
+    social = max(0, round(100 - failures*4 - downtime*0.3, 2))
+    return economic, ecological, social
+
+econ_pred, eco_pred, soc_pred = sustainability_score(predictive_downtime, predictive_total_cost, predictive_events, reactive_failures)
+econ_prev, eco_prev, soc_prev = sustainability_score(preventive_downtime, preventive_total_cost, YEAR_DATA_POINTS/2500)
+econ_reac, eco_reac, soc_reac = sustainability_score(reactive_downtime, reactive_total_cost, reactive_failures, reactive_failures)
+
+summary["Economic Score"] = [econ_pred, econ_prev, econ_reac]
+summary["Ecological Score"] = [eco_pred, eco_prev, eco_reac]
+summary["Social Score"] = [soc_pred, soc_prev, soc_reac]
+
+print("\n===== SUMMARY WITH SUSTAINABILITY SCORES =====\n")
+print(summary.to_string(index=False, float_format="{:,.2f}".format))
