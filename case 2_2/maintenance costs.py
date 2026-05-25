@@ -10,13 +10,14 @@ import seaborn as sns
 from sklearn.metrics import classification_report, confusion_matrix
 
 # =========================================================
-# BASE PATH UND MODEL
+#%% BASE PATH UND MODEL
 # =========================================================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "advanced_labeling_rf_final_model.pkl")
+#MODEL_PATH = os.path.join(BASE_DIR, "improved_model.pkl")
 
 # =========================================================
-# PARAMETERS
+#%% PARAMETERS
 # =========================================================
 NUM_MACHINES = 10
 YEAR_DATA_POINTS = 5000
@@ -47,7 +48,7 @@ TOTAL_SENSOR_COST = NUM_MACHINES * SENSOR_COST_PER_MACHINE
 END_EFFECTOR_FAILURE_COST = 10000
 
 # =========================================================
-# LOAD SENSOR DATA
+#%% LOAD SENSOR DATA
 # =========================================================
 dfs = []
 for i in range(NUM_MACHINES):
@@ -61,7 +62,7 @@ df = pd.concat(dfs, ignore_index=True)
 print("Initial shape:", df.shape)
 
 # =========================================================
-# FEATURE ENGINEERING
+#%% FEATURE ENGINEERING
 # =========================================================
 temp_cols = ["TempSensor0", "TempSensor1", "TempSensor2", "TempSensor3"]
 vib_cols = ["VibraSensor0", "VibraSensor1", "VibraSensor2", "VibraSensor3"]
@@ -85,7 +86,7 @@ df = df.dropna().reset_index(drop=True)
 print("Shape after cleaning:", df.shape)
 
 # =========================================================
-# LOAD MODEL AND PREDICT
+#%% LOAD MODEL AND PREDICT
 # =========================================================
 model = joblib.load(MODEL_PATH)
 feature_cols = [
@@ -100,7 +101,7 @@ df["prediction"] = model.predict(df[feature_cols])
 print("Predictions from model added to dataframe")
 
 # =========================================================
-# EVENT DETECTION
+#%% EVENT DETECTION
 # =========================================================
 df["predictive_event"] = (
     (df["prediction"].isin(["short","urgent"])) &
@@ -118,7 +119,7 @@ print("\nPredictive events:", predictive_events)
 print("Reactive failures:", reactive_failures)
 
 # =========================================================
-# COST FUNCTIONS
+#%% COST FUNCTIONS
 # =========================================================
 def predictive_cost(events):
     downtime = events * PLANNED_TOTAL_TIME
@@ -147,21 +148,21 @@ def reactive_cost(failures):
     return total_cost, downtime
 
 # =========================================================
-# CALCULATE COSTS
+#%% CALCULATE COSTS
 # =========================================================
 predictive_total_cost, predictive_downtime = predictive_cost(predictive_events)
 preventive_total_cost, preventive_downtime = preventive_cost()
 reactive_total_cost, reactive_downtime = reactive_cost(reactive_failures)
 
 # =========================================================
-# SUSTAINABILITY
+#%% SUSTAINABILITY
 # =========================================================
 predictive_battery_usage = predictive_downtime * BATTERY_FLOW_PER_HOUR
 preventive_battery_usage = preventive_downtime * BATTERY_FLOW_PER_HOUR
 reactive_battery_usage = reactive_downtime * BATTERY_FLOW_PER_HOUR
 
 # =========================================================
-# SUMMARY OUTPUT
+#%% SUMMARY OUTPUT
 # =========================================================
 summary = pd.DataFrame({
     "Strategy": ["Predictive", "Preventive", "Reactive"],
@@ -171,7 +172,7 @@ summary = pd.DataFrame({
 })
 
 # =========================================================
-# SUSTAINABILITY SCORES
+#%% SUSTAINABILITY SCORES
 # =========================================================
 def sustainability_score(downtime, total_cost, events, failures=0):
     economic = max(0, round(100 - (total_cost / 1_000_000), 2))
