@@ -13,8 +13,8 @@ from sklearn.metrics import classification_report, confusion_matrix
 #%% BASE PATH UND MODEL
 # =========================================================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH = os.path.join(BASE_DIR, "advanced_labeling_rf_final_model.pkl")
-#MODEL_PATH = os.path.join(BASE_DIR, "improved_model.pkl")
+#MODEL_PATH = os.path.join(BASE_DIR, "advanced_labeling_rf_final_model.pkl")
+MODEL_PATH = os.path.join(BASE_DIR, "improved_model.pkl")
 
 # =========================================================
 #%% PARAMETERS
@@ -138,7 +138,7 @@ def preventive_cost():
     return total_cost, downtime
 
 def reactive_cost(failures):
-    # Minimum simulated failures, damit Kosten hoch genug sind
+    # Minimum simulated failures, in order to get costs which are high enough
     simulated_failures = max(failures, 8)  
     downtime = simulated_failures * UNPLANNED_TOTAL_TIME
     lost_profit_cost = downtime * LOSS_PER_HOUR
