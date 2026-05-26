@@ -13,8 +13,8 @@ from sklearn.metrics import classification_report, confusion_matrix
 #%% BASE PATH UND MODEL
 # =========================================================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-#MODEL_PATH = os.path.join(BASE_DIR, "advanced_labeling_rf_final_model.pkl")
-MODEL_PATH = os.path.join(BASE_DIR, "improved_model.pkl")
+MODEL_PATH = os.path.join(BASE_DIR, "advanced_labeling_rf_final_model.pkl")
+#MODEL_PATH = os.path.join(BASE_DIR, "improved_model.pkl")
 
 # =========================================================
 #%% PARAMETERS
@@ -82,6 +82,16 @@ df["vib_lag1"] = df.groupby("machineNumber")["vibration"].shift(1)
 df["temp_trend"] = df["temp"] - df["temp_lag1"]
 df["vib_trend"] = df["vibration"] - df["vib_lag1"]
 
+# # Maximum temperature
+# df["temp_max"] = df[
+#     ["TempSensor0", "TempSensor1", "TempSensor2", "TempSensor3"]
+# ].max(axis=1)
+
+# # Maximum vibration
+# df["vib_max"] = df[
+#     ["VibraSensor0", "VibraSensor1", "VibraSensor2", "VibraSensor3"]
+# ].max(axis=1)
+
 df = df.dropna().reset_index(drop=True)
 print("Shape after cleaning:", df.shape)
 
@@ -95,7 +105,9 @@ feature_cols = [
     "temp_std_roll","vib_std_roll",
     "temp_diff","vib_diff",
     "temp_lag1","vib_lag1",
-    "temp_trend","vib_trend"
+    "temp_trend", 
+    #"temp_max", "vib_max",
+    "vib_trend"
 ]
 df["prediction"] = model.predict(df[feature_cols])
 print("Predictions from model added to dataframe")

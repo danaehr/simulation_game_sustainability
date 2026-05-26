@@ -102,6 +102,7 @@ def labeling(df, method):
 #%% load model, aplly to sensor_data_week2 and getting necesary data
 # =========================================================
 model = joblib.load("improved_model.pkl")
+#model = joblib.load("advanced_labeling_rf_final_model.pkl")
 
 # Load data
 dfs = []

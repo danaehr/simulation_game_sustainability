@@ -318,3 +318,97 @@ disp = ConfusionMatrixDisplay(
 disp.plot(cmap="Blues")
 plt.title("Predictive Maintenance Confusion Matrix")
 plt.show()
+
+# =========================================================
+# 14. MODEL COMPARISON
+# =========================================================
+
+from sklearn.metrics import precision_score, recall_score
+
+# Feature columns for old model
+feature_cols_old = [
+    "temp",
+    "vibration",
+    "temp_mean_roll",
+    "vib_mean_roll",
+    "temp_std_roll",
+    "vib_std_roll",
+    "temp_diff",
+    "vib_diff",
+    "temp_lag1",
+    "vib_lag1",
+    "temp_trend",
+    "vib_trend"
+]
+
+# Feature columns for improved model
+feature_cols_new = [
+    "temp",
+    "vibration",
+    "temp_mean_roll",
+    "vib_mean_roll",
+    "temp_std_roll",
+    "vib_std_roll",
+    "temp_diff",
+    "vib_diff",
+    "temp_lag1",
+    "vib_lag1",
+    "temp_trend",
+    "temp_max",
+    "vib_max",
+    "vib_trend"
+]
+
+# Load models
+old_model = joblib.load("02_prediction_models/advanced_labeling_rf_final_model.pkl")
+new_model = joblib.load("02_prediction_models/improved_model.pkl")
+
+# Predictions
+y_pred_old = old_model.predict(X_test[feature_cols_old])
+y_pred_new = new_model.predict(X_test[feature_cols_new])
+
+# =========================================================
+# OLD MODEL
+# =========================================================
+
+print("\n===== OLD MODEL =====")
+
+precision_old = precision_score(
+    y_test,
+    y_pred_old,
+    average="macro",
+    zero_division=0
+)
+
+recall_old = recall_score(
+    y_test,
+    y_pred_old,
+    average="macro",
+    zero_division=0
+)
+
+print("Precision:", round(precision_old, 3))
+print("Recall:", round(recall_old, 3))
+
+# =========================================================
+# NEW MODEL
+# =========================================================
+
+print("\n===== IMPROVED MODEL =====")
+
+precision_new = precision_score(
+    y_test,
+    y_pred_new,
+    average="macro",
+    zero_division=0
+)
+
+recall_new = recall_score(
+    y_test,
+    y_pred_new,
+    average="macro",
+    zero_division=0
+)
+
+print("Precision:", round(precision_new, 3))
+print("Recall:", round(recall_new, 3))
