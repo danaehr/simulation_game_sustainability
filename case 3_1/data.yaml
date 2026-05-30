@@ -1,0 +1,13 @@
+train: ./car_images_labeld/train/images
+val: ./car_images_labeld/valid/images
+test: ./car_images_labeld/test/images
+
+nc: 1
+names: ['scratch']
+
+roboflow:
+  workspace: digits-vc8v6
+  project: digits-vc8v6
+  version: dataset
+  license: Private
+  url: https://app.roboflow.com/digits-vc8v6/digits-vc8v6/dataset

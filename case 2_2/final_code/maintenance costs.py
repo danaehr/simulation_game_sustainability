@@ -12,7 +12,7 @@ from sklearn.metrics import classification_report, confusion_matrix
 # =========================================================
 #%% BASE PATH UND MODEL
 # =========================================================
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MODEL_PATH = os.path.join(BASE_DIR, "advanced_labeling_rf_final_model.pkl")
 #MODEL_PATH = os.path.join(BASE_DIR, "improved_model.pkl")
 
