@@ -77,8 +77,29 @@ print(f"Total Middle Parts: {total_middle_parts}")
 print(f"Total Bottom Parts: {total_bottom_parts}")
 
 ###########################################################
-#%% Calculating the best result
+#%% Calculating the best result (economically)
 ###########################################################
 
+# material costs are the prices --> lower is better
+# co2 means co2 points --> lower is better
+costs = {
+            'top':{
+                'correction':{'material':130,'co2':3}
+                ,'exchange':{'material':150,'co2':2}
+             }
+             ,'middle':{
+                 'correction':{'material':80,'co2':5}
+                 ,'exchange':{'material':70,'co2':6}
+             }
+             ,'bottom':{
+                 'correction':{'material':90,'co2':3}
+                 ,'exchange':{'material':30,'co2':9}
+             }
+        }
 #use these variables: total_top_parts, total_middle_parts, total_bottom_parts 
+
+
+###########################################################
+#%% Calculating the best result (economically + ecologically)
+###########################################################
 
