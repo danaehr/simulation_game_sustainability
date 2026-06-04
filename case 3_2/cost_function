@@ -1,0 +1,170 @@
+from ultralytics import YOLO
+from pathlib import Path
+import pandas as pd
+
+# ==================================
+# 1. MODEL + DATASET
+# ==================================
+model = YOLO("best.pt")
+production_dir = Path("production_data")
+
+
+# ==================================
+# 2. CAR PART CLASSIFICATION
+# ==================================
+def classify_car_part(y_center):
+    if 0 <= y_center <= 0.49:
+        return "Top"
+    elif 0.50 <= y_center <= 0.59:
+        return "Middle"
+    elif 0.60 <= y_center <= 1:
+        return "Bottom"
+    else:
+        return "Unknown"
+
+# ==================================
+# 3. COST MODEL
+# ==================================
+costs = {
+    "Top": {
+        "repair": {"cost": 130, "co2": 3},
+        "exchange": {"cost": 150, "co2": 2}
+    },
+    "Middle": {
+        "repair": {"cost": 80, "co2": 5},
+        "exchange": {"cost": 70, "co2": 6}
+    },
+    "Bottom": {
+        "repair": {"cost": 90, "co2": 3},
+        "exchange": {"cost": 30, "co2": 9}
+    }
+}
+
+MAX_COST = 150
+MAX_CO2 = 9
+
+# ==================================
+# 4. DYNAMIC ALPHA (DATA-DRIVEN)
+# ==================================
+def compute_alpha(cost_dict):
+    all_costs = []
+    all_co2 = []
+
+    for part in cost_dict:
+        for action in cost_dict[part]:
+            all_costs.append(cost_dict[part][action]["cost"])
+            all_co2.append(cost_dict[part][action]["co2"])
+
+    avg_cost = sum(all_costs) / len(all_costs)
+    avg_co2 = sum(all_co2) / len(all_co2)
+
+    alpha = avg_cost / (avg_cost + avg_co2)
+    return alpha
+
+alpha = compute_alpha(costs)
+print(f"Dynamisch berechnetes Alpha: {round(alpha, 3)}")
+
+# ==================================
+# 5. SUSTAINABILITY SCORE (MCDA)
+# ==================================
+def sustainability_score(cost, co2, alpha):
+    cost_norm = cost / MAX_COST
+    co2_norm = co2 / MAX_CO2
+
+    return (alpha * cost_norm**2 + (1 - alpha) * co2_norm**2) ** 0.5
+
+# ==================================
+# 6. DECISION FUNCTION
+# ==================================
+def decide_action(car_part, alpha):
+
+    r = costs[car_part]["repair"]
+    e = costs[car_part]["exchange"]
+
+    repair_score = sustainability_score(r["cost"], r["co2"], alpha)
+    exchange_score = sustainability_score(e["cost"], e["co2"], alpha)
+
+    if repair_score <= exchange_score:
+        decision = "Repair"
+    else:
+        decision = "Exchange"
+
+    return {
+        "decision": decision,
+        "repair_score": round(repair_score, 3),
+        "exchange_score": round(exchange_score, 3),
+        "repair_cost": r["cost"],
+        "repair_co2": r["co2"],
+        "exchange_cost": e["cost"],
+        "exchange_co2": e["co2"]
+    }
+
+# ==================================
+# 7. MAIN PIPELINE (YOLO + LOGIC)
+# ==================================
+rows = []
+
+for img_path in sorted(production_dir.glob("*.png"), key=lambda x: int(x.stem)):
+
+    results = model.predict(img_path, conf=0.37, verbose=False)
+    result = results[0]
+
+    if len(result.boxes) == 0:
+        rows.append({
+            "Image": img_path.name,
+            "Scratch detected": "No",
+            "Decision": "No action required"
+        })
+        continue
+
+    img_height = result.orig_shape[0]
+
+    # mehrere Objekte pro Bild
+    for box in result.boxes:
+
+        x1, y1, x2, y2 = box.xyxy[0].tolist()
+        conf = box.conf[0].item()
+
+        y_center = ((y1 + y2) / 2) / img_height
+        car_part = classify_car_part(y_center)
+
+        if car_part == "Unknown":
+            continue
+
+        decision_data = decide_action(car_part, alpha)
+
+        rows.append({
+            "Image": img_path.name,
+            "Confidence": round(conf, 3),
+            "Y coordinate": round(y_center, 3),
+            "Car part": car_part,
+
+            "Repair Cost": decision_data["repair_cost"],
+            "Repair CO2": decision_data["repair_co2"],
+            "Repair Score": decision_data["repair_score"],
+
+            "Exchange Cost": decision_data["exchange_cost"],
+            "Exchange CO2": decision_data["exchange_co2"],
+            "Exchange Score": decision_data["exchange_score"],
+
+            "Decision": decision_data["decision"]
+        })
+
+# ==================================
+# 8. OUTPUT
+# ==================================
+df = pd.DataFrame(rows)
+
+print(df.to_string(index=False))
+
+print("\n--- SUMMARY ---")
+print(f"Top: {(df['Car part'] == 'Top').sum()}")
+print(f"Middle: {(df['Car part'] == 'Middle').sum()}")
+print(f"Bottom: {(df['Car part'] == 'Bottom').sum()}")
+
+print("\n--- DECISION DISTRIBUTION ---")
+print(df["Decision"].value_counts())
+
+df.to_csv("quality_management_results.csv", index=False)
+
+print("\nSaved: quality_management_results.csv")
