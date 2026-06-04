@@ -79,6 +79,8 @@ print(f"Total Bottom Parts: {total_bottom_parts}")
 ###########################################################
 #%% Calculating the best result (economically)
 ###########################################################
+#use these variables: total_top_parts, total_middle_parts, total_bottom_parts 
+
 
 # material costs are the prices --> lower is better
 # co2 means co2 points --> lower is better
@@ -96,25 +98,33 @@ costs = {
                  ,'exchange':{'material':30,'co2':9}
              }
         }
-#use these variables: total_top_parts, total_middle_parts, total_bottom_parts 
+
 
 #%%
-# shows how many cars with dedicated scratches will be corrected and how many will be exchanged
-strategy = {
-            'top':{
-                'correction': 0
-                ,'exchange': 1
-             }
-             ,'middle':{
-                 'correction': 1
-                 ,'exchange': 2
-             }
-             ,'bottom':{
-                 'correction': 2
-                 ,'exchange': 0
-             }
+# finds best strategy for 'costs' or 'co2' based on the provided costs
+def get_benefitial_strategy(costs, benefit='costs'):
+     
+    benefitial_strategie = {
+        'top': None
+        ,'middle': None
+        ,'bottom': None
         }
-#%%
+    
+    if benefit == 'costs':
+        criteria = 'material'
+    elif benefit == 'co2':
+        criteria = 'co2'
+    else:
+        return None
+    
+    for area in costs.keys():
+        if costs[area]['exchange'][criteria] >= costs[area]['correction'][criteria]:
+            benefitial_strategie[area] = 'correction'
+        else:
+            benefitial_strategie[area] = 'exchange'
+    
+    return benefitial_strategie
+
 def costs_calculation(strategy, costs):
     material = 0
     co2 = 0
@@ -133,9 +143,95 @@ def costs_calculation(strategy, costs):
             return None, None
     return material, co2
 
+#%%
+min_price_strategy = get_benefitial_strategy(costs, benefit = 'costs')
+
+# shows how many cars with dedicated scratches will be corrected and how many will be exchanged
+strategy = {
+            'top':{
+                'correction': 0
+                ,'exchange': 0
+             }
+             ,'middle':{
+                 'correction': 0
+                 ,'exchange': 0
+             }
+             ,'bottom':{
+                 'correction': 0
+                 ,'exchange': 0
+             }
+        }
+
+for area in strategy.keys():
+    for s in strategy[area].keys():
+        # if stategy has lowest price
+        if s == min_price_strategy[area]:
+            # apply this strategy
+            if area == 'top':
+                strategy[area][s] = total_top_parts
+            elif area == 'middle':
+                strategy[area][s] = total_middle_parts
+            elif area == 'bottom':
+                strategy[area][s] = total_bottom_parts
+        else:
+            # if strategy has not lowest price
+            strategy[area][s] = 0 # do not apply 
+
+
+
+
 total_price_min, total_co2_at_min_price = costs_calculation(strategy, costs) # result of best price and its co2 evaluation
 
 ###########################################################
 #%% Calculating the best result (economically + ecologically)
 ###########################################################
+#calculation of co2 price per area
+
+# costs per co2 point
+co2_price = {
+    'top': None
+    ,'middle': None
+    ,'bottom': None
+    }
+
+# total costs for saving co2 points
+co2_costs = {
+    'top': None
+    ,'middle': None
+    ,'bottom': None
+    }
+
+# strategy with lower co2 emissions
+co2_benefitial_strategy = get_benefitial_strategy(costs, benefit = 'co2')
+
+
+for area in costs.keys():
+    co2_costs[area] =  (costs[area]['exchange']['material'] - costs[area]['correction']['material']) 
+    co2_price[area] = - co2_costs[area] / (costs[area]['exchange']['co2'] - costs[area]['correction']['co2'])
+    co2_costs[area] = abs(co2_costs[area]) # keep always positive
+
+budget = 10 # budget for co2 reduction in relation to minimal total price possible
+budget_absolut = round(budget/100 * total_price_min,2)
+#%%
+best_area = sorted(co2_price, key=co2_price.get, reverse=False)[0]
+
+budget_remaining = budget_absolut
+
+def invert_strategy(s):
+    if s == 'correction':
+        return 'exchange'
+    elif s == 'exchange':
+        return 'correction'
+    else: 
+        return None
+    
+while budget_remaining >0 and strategy[best_area][invert_strategy(co2_benefitial_strategy[best_area])] > 0:
+    if budget_remaining >= co2_costs[best_area]:
+        budget_remaining -= co2_costs[best_area] # reduce budget 
+        
+        # adjust strategy
+        strategy[best_area][invert_strategy(co2_benefitial_strategy[best_area])] -= 1 # decrease amount of not co2 benefitial
+        strategy[best_area][co2_benefitial_strategy[best_area]] += 1 # increase amount of co2 benefitial
+
+
 
