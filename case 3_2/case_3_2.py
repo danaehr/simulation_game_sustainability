@@ -98,6 +98,42 @@ costs = {
         }
 #use these variables: total_top_parts, total_middle_parts, total_bottom_parts 
 
+#%%
+# shows how many cars with dedicated scratches will be corrected and how many will be exchanged
+strategy = {
+            'top':{
+                'correction': 0
+                ,'exchange': 1
+             }
+             ,'middle':{
+                 'correction': 1
+                 ,'exchange': 2
+             }
+             ,'bottom':{
+                 'correction': 2
+                 ,'exchange': 0
+             }
+        }
+#%%
+def costs_calculation(strategy, costs):
+    material = 0
+    co2 = 0
+    for area in strategy.keys():
+        if area in costs:
+            
+            for strat in strategy[area].keys():
+                if strat in costs[area]:                
+                    material += strategy[area][strat] * costs[area][strat]['material']
+                    co2 += strategy[area][strat] * costs[area][strat]['co2']
+                else:
+                    print(f'key {strat} is unknown in dict costs[{area}]')
+                    return None, None
+        else:
+            print(f'key {area} is unknown in dict costs')
+            return None, None
+    return material, co2
+
+total_price_min, total_co2_at_min_price = costs_calculation(strategy, costs) # result of best price and its co2 evaluation
 
 ###########################################################
 #%% Calculating the best result (economically + ecologically)
