@@ -1,0 +1,131 @@
+from ultralytics import YOLO
+from pathlib import Path
+import pandas as pd
+
+# ==================================
+# 1. MODEL + DATA
+# ==================================
+model = YOLO("best.pt")
+
+production_dir = Path("production_data")
+
+# ==================================
+# 2. CAR PART CLASSIFICATION
+# ==================================
+def classify_car_part(y_center: float) -> str:
+    """
+    Maps normalized y_center to car part.
+    """
+    if y_center < 0.50:
+        return "Top"
+    elif y_center < 0.60:
+        return "Middle"
+    else:
+        return "Bottom"
+
+# ==================================
+# 3. COST MODEL
+# ==================================
+costs = {
+    "Top": {
+        "repair": {"cost": 130, "co2": 3},
+        "exchange": {"cost": 150, "co2": 2}
+    },
+    "Middle": {
+        "repair": {"cost": 80, "co2": 5},
+        "exchange": {"cost": 70, "co2": 6}
+    },
+    "Bottom": {
+        "repair": {"cost": 90, "co2": 3},
+        "exchange": {"cost": 30, "co2": 9}
+    }
+}
+
+# ==================================
+# 4. DECISION FUNCTION
+# ==================================
+def decide(part: str, alpha: float = 20) -> str:
+    """
+    Multi-objective decision:
+    cost + CO2 weighting
+    """
+    repair = costs[part]["repair"]
+    exchange = costs[part]["exchange"]
+
+    repair_score = repair["cost"] + alpha * repair["co2"]
+    exchange_score = exchange["cost"] + alpha * exchange["co2"]
+
+    return "Exchange" if exchange_score < repair_score else "Repair"
+
+# ==================================
+# 5. DETECTION + PIPELINE
+# ==================================
+results_list = []
+
+for img_path in sorted(production_dir.glob("*.png"), key=lambda x: int(x.stem)):
+
+    result = model.predict(img_path, conf=0.4, verbose=False)[0]
+
+    img_height = result.orig_shape[0]
+
+    if len(result.boxes) == 0:
+        continue
+
+    for box in result.boxes:
+
+        x1, y1, x2, y2 = box.xyxy[0].tolist()
+        conf = box.conf[0].item()
+
+        # normalize y-center
+        y_center = ((y1 + y2) / 2) / img_height
+
+        # assign car part
+        part = classify_car_part(y_center)
+
+        # decision
+        decision = decide(part)
+
+        results_list.append({
+            "image": img_path.name,
+            "confidence": conf,
+            "car_part": part,
+            "y_center": y_center,
+            "repair_cost": costs[part]["repair"]["cost"],
+            "repair_co2": costs[part]["repair"]["co2"],
+            "exchange_cost": costs[part]["exchange"]["cost"],
+            "exchange_co2": costs[part]["exchange"]["co2"],
+            "decision": decision
+        })
+
+# ==================================
+# 6. OUTPUT
+# ==================================
+df = pd.DataFrame(results_list)
+
+print("\n--- SAMPLE RESULTS ---")
+print(df.head())
+
+print("\n--- DECISION DISTRIBUTION ---")
+print(df["decision"].value_counts())
+
+# totals
+total_cost = 0
+total_co2 = 0
+
+for _, row in df.iterrows():
+    if row["decision"] == "Repair":
+        total_cost += row["repair_cost"]
+        total_co2 += row["repair_co2"]
+    else:
+        total_cost += row["exchange_cost"]
+        total_co2 += row["exchange_co2"]
+
+print("\n--- FINAL SUMMARY ---")
+print(f"Total cost: {total_cost}")
+print(f"Total CO2: {total_co2}")
+
+# ==================================
+# 7. SAVE RESULTS
+# ==================================
+df.to_csv("final_results_clean.csv", index=False)
+print("\nSaved: final_results_clean.csv")
