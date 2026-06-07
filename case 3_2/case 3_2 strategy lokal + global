@@ -1,0 +1,153 @@
+from ultralytics import YOLO
+from pathlib import Path
+import pandas as pd
+
+# ==================================
+# 1. MODEL + DATA
+# ==================================
+model = YOLO("best.pt")
+
+
+production_dir = Path("production_data")
+# ==================================
+# 2. CAR PART CLASSIFICATION
+# ==================================
+def classify_car_part(y_center: float) -> str:
+    if y_center < 0.50:
+        return "Top"
+    elif y_center < 0.60:
+        return "Middle"
+    else:
+        return "Bottom"
+
+# ==================================
+# 3. COST MODEL
+# ==================================
+costs = {
+    "Top": {
+        "repair": {"cost": 130, "co2": 3},
+        "exchange": {"cost": 150, "co2": 2}
+    },
+    "Middle": {
+        "repair": {"cost": 80, "co2": 5},
+        "exchange": {"cost": 70, "co2": 6}
+    },
+    "Bottom": {
+        "repair": {"cost": 90, "co2": 3},
+        "exchange": {"cost": 30, "co2": 9}
+    }
+}
+
+# ==================================
+# 4. COLLECT DATA (NO DECISION YET)
+# ==================================
+candidates = []
+
+for img_path in sorted(production_dir.glob("*.png")):
+
+    result = model.predict(img_path, conf=0.4, verbose=False)[0]
+    img_height = result.orig_shape[0]
+
+    if len(result.boxes) == 0:
+        continue
+
+    for box in result.boxes:
+
+        x1, y1, x2, y2 = box.xyxy[0].tolist()
+        y_center = ((y1 + y2) / 2) / img_height
+
+        part = classify_car_part(y_center)
+
+        repair = costs[part]["repair"]
+        exchange = costs[part]["exchange"]
+
+        candidates.append({
+            "image": img_path.name,
+            "part": part,
+            "repair_cost": repair["cost"],
+            "repair_co2": repair["co2"],
+            "exchange_cost": exchange["cost"],
+            "exchange_co2": exchange["co2"]
+        })
+
+df = pd.DataFrame(candidates)
+
+# ==================================
+# 5. LOCAL DECISION (ML STYLE)
+# ==================================
+alpha = 20
+
+df["repair_score"] = df["repair_cost"] + alpha * df["repair_co2"]
+df["exchange_score"] = df["exchange_cost"] + alpha * df["exchange_co2"]
+
+df["decision"] = df.apply(
+    lambda r: "Exchange" if r["exchange_score"] < r["repair_score"] else "Repair",
+    axis=1
+)
+
+# ==================================
+# 6. BASELINE RESULTS
+# ==================================
+df["final_cost"] = df.apply(
+    lambda r: r["repair_cost"] if r["decision"] == "Repair" else r["exchange_cost"],
+    axis=1
+)
+
+df["final_co2"] = df.apply(
+    lambda r: r["repair_co2"] if r["decision"] == "Repair" else r["exchange_co2"],
+    axis=1
+)
+
+baseline_cost = df["final_cost"].sum()
+baseline_co2 = df["final_co2"].sum()
+
+# ==================================
+# 7. GLOBAL CO₂ OPTIMIZATION (FIXED)
+# ==================================
+
+budget = 0.10  # 10% CO2 reduction target
+target_co2 = baseline_co2 * (1 - budget)
+
+# compute benefit of switching to exchange (or repair)
+df["swap_gain"] = df["repair_co2"] - df["exchange_co2"]
+
+# sort by best CO2 improvement first
+df = df.sort_values(by="swap_gain", ascending=False)
+
+current_co2 = baseline_co2
+
+# ==================================
+# 8. APPLY GLOBAL ADJUSTMENT
+# ==================================
+for i in df.index:
+
+    if current_co2 <= target_co2:
+        break
+
+    row = df.loc[i]
+
+    # if switching helps reduce CO2
+    if row["swap_gain"] > 0 and row["decision"] == "Repair":
+
+        df.at[i, "decision"] = "Exchange"
+        current_co2 -= row["swap_gain"]
+
+# ==================================
+# 9. FINAL RESULTS
+# ==================================
+df["final_cost"] = df.apply(
+    lambda r: r["repair_cost"] if r["decision"] == "Repair" else r["exchange_cost"],
+    axis=1
+)
+
+df["final_co2"] = df.apply(
+    lambda r: r["repair_co2"] if r["decision"] == "Repair" else r["exchange_co2"],
+    axis=1
+)
+
+print("\n--- FINAL HYBRID RESULT ---")
+print(f"Total cost: {df['final_cost'].sum()}")
+print(f"Total CO2: {df['final_co2'].sum()}")
+
+print("\n--- DECISION DISTRIBUTION ---")
+print(df["decision"].value_counts())
