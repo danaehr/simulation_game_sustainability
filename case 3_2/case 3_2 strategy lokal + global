@@ -7,8 +7,8 @@ import pandas as pd
 # ==================================
 model = YOLO("best.pt")
 
-
 production_dir = Path("production_data")
+
 # ==================================
 # 2. CAR PART CLASSIFICATION
 # ==================================
@@ -101,39 +101,44 @@ df["final_co2"] = df.apply(
 baseline_cost = df["final_cost"].sum()
 baseline_co2 = df["final_co2"].sum()
 
-# ==================================
-# 7. GLOBAL CO₂ OPTIMIZATION (FIXED)
-# ==================================
 
-budget = 0.10  # 10% CO2 reduction target
+# 👉 NEU: Ausgabe der Baseline-Ergebnisse
+print("\n--- BASELINE RESULT (after local decision) ---")
+print(f"Total cost: {baseline_cost}")
+print(f"Total CO2: {baseline_co2}")
+
+print("\n--- BASELINE DECISION DISTRIBUTION ---")
+print(df["decision"].value_counts())
+
+# ==================================
+# 7. GLOBAL CO₂ OPTIMIZATION 
+# ==================================
+budget = 0.10
+baseline_co2 = df["final_co2"].sum()
 target_co2 = baseline_co2 * (1 - budget)
-
-# compute benefit of switching to exchange (or repair)
-df["swap_gain"] = df["repair_co2"] - df["exchange_co2"]
-
-# sort by best CO2 improvement first
-df = df.sort_values(by="swap_gain", ascending=False)
-
 current_co2 = baseline_co2
 
-# ==================================
-# 8. APPLY GLOBAL ADJUSTMENT
-# ==================================
-for i in df.index:
+df["swap_gain"] = df["repair_co2"] - df["exchange_co2"]
 
+df = df.reindex(df["swap_gain"].abs().sort_values(ascending=False).index)
+
+for i in df.index:
     if current_co2 <= target_co2:
         break
 
     row = df.loc[i]
 
-    # if switching helps reduce CO2
-    if row["swap_gain"] > 0 and row["decision"] == "Repair":
-
+    if row["decision"] == "Repair" and row["swap_gain"] > 0:
         df.at[i, "decision"] = "Exchange"
         current_co2 -= row["swap_gain"]
 
+    elif row["decision"] == "Exchange" and row["swap_gain"] < 0:
+        df.at[i, "decision"] = "Repair"
+        current_co2 += row["swap_gain"]
+
+
 # ==================================
-# 9. FINAL RESULTS
+# 8. FINAL RESULTS
 # ==================================
 df["final_cost"] = df.apply(
     lambda r: r["repair_cost"] if r["decision"] == "Repair" else r["exchange_cost"],
