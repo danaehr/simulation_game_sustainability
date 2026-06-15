@@ -9,7 +9,7 @@ from pm4py.visualization.heuristics_net import visualizer as hn_vis
 
 
 # ==================================================
-# 1. SETTINGS
+#%% 1. SETTINGS
 # ==================================================
 
 INPUT_PATH = "data.csv"
@@ -20,7 +20,7 @@ OUTPUT_COMPLETE_LOG_BPMN = "04_complete_log_based_bpmn_all_paths.drawio"
 
 
 # ==================================================
-# 2. LOAD DATA
+#%% 2. LOAD DATA
 # ==================================================
 
 df = pd.read_csv(INPUT_PATH)
@@ -40,7 +40,7 @@ print(f"Cases: {df['case:concept:name'].nunique()}")
 
 
 # ==================================================
-# 3. BASIC ANALYSIS
+#%% 3. BASIC ANALYSIS
 # ==================================================
 
 print("\n=== Activity overview ===")
@@ -59,7 +59,7 @@ for i, (case_id, trace) in enumerate(traces.items()):
 
 
 # ==================================================
-# 4. CENTRAL LOG STATISTICS
+#%% 4. CENTRAL LOG STATISTICS
 # ==================================================
 
 transition_counts = Counter()
@@ -96,7 +96,7 @@ def global_prob_precise(source, target):
 
 
 # ==================================================
-# 5. XOR PROBABILITIES
+#%% 5. XOR PROBABILITIES
 # ==================================================
 
 damaged_count = sum(
@@ -112,7 +112,7 @@ print(f"Normal path: {normal_count} cases ({normal_count / total_cases:.1%})")
 
 
 # ==================================================
-# 6. REWORK DETECTION
+#%% 6. REWORK DETECTION
 # ==================================================
 
 print("\n=== Rework detection ===")
@@ -130,7 +130,7 @@ print(f"Cases with rework: {rework_cases}")
 
 
 # ==================================================
-# 7. PM4PY PROCESS DISCOVERY
+#%% 7. PM4PY PROCESS DISCOVERY
 # ==================================================
 
 event_log = log_converter.apply(df)
@@ -147,7 +147,7 @@ hn_vis.view(gviz2)
 
 
 # ==================================================
-# 8. DRAW.IO HELPERS
+#%% 8. DRAW.IO HELPERS
 # ==================================================
 
 def style_for(kind):
@@ -235,7 +235,7 @@ def write_drawio(output_path, diagram_name, nodes, edges, skip_zero=True):
 
 
 # ==================================================
-# 9. INTERVIEW-BASED BPMN
+#%% 9. INTERVIEW-BASED BPMN
 # ==================================================
 
 interview_nodes = [
@@ -303,7 +303,7 @@ write_drawio(
 
 
 # ==================================================
-# 10. CLEAN LOG-BASED BPMN
+#%% 10. CLEAN LOG-BASED BPMN
 # ==================================================
 
 log_nodes = [
@@ -363,7 +363,7 @@ write_drawio(
 
 
 # ==================================================
-# 11. COMPLETE LOG-BASED BPMN WITH ALL PATHS
+#%% 11. COMPLETE LOG-BASED BPMN WITH ALL PATHS
 # ==================================================
 
 complete_nodes = [
