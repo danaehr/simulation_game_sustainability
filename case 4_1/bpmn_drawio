@@ -11,7 +11,7 @@ from pm4py.visualization.heuristics_net import visualizer as hn_vis
 # 1. LOAD DATA
 # ==================================================
 
-df = pd.read_csv("case 3_2/data.csv")
+df = pd.read_csv("data.csv")
 
 df["timestamp"] = pd.to_datetime(df["timestamp"])
 
@@ -208,7 +208,7 @@ def export_bpmn(xor_prob):
 # 7. EXPORT FILE
 # ==================================================
 
-output_path = "case 3_2/bpmn_battery.drawio"
+output_path = "bpmn_battery.drawio"
 
 
 
@@ -217,3 +217,5 @@ with open(output_path, "w", encoding="utf-8") as f:
 
 print("✔ FINAL BPMN CREATED:")
 print(output_path)
+
+

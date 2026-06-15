@@ -1,0 +1,151 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Battery Recycling BPMN">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <mxCell id="2" value="Start" style="rounded=1;fillColor=#dae8fc;" vertex="1" parent="1">
+          <mxGeometry x="100" y="300" width="160" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="3" value="Check Battery" style="rounded=1;fillColor=#dae8fc;" vertex="1" parent="1">
+          <mxGeometry x="300" y="300" width="160" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="4" value="XOR: Battery damaged?" style="rhombus;fillColor=#fff2cc;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="500" y="300" width="160" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="5" value="Damaged (100%)" style="rounded=1;fillColor=#dae8fc;" vertex="1" parent="1">
+          <mxGeometry x="700" y="180" width="160" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="6" value="Open Battery" style="rounded=1;fillColor=#dae8fc;" vertex="1" parent="1">
+          <mxGeometry x="700" y="360" width="160" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="7" value="Extract Electrolyte" style="rounded=1;fillColor=#dae8fc;" vertex="1" parent="1">
+          <mxGeometry x="900" y="360" width="160" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="8" value="AND Split" style="rhombus;fillColor=#d5e8ff;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="360" width="160" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="9" value="Evaporate" style="rounded=1;fillColor=#dae8fc;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="260" width="160" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="10" value="Clean" style="rounded=1;fillColor=#dae8fc;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="460" width="160" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="11" value="AND Join" style="rhombus;fillColor=#d5e8ff;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1500" y="360" width="160" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="12" value="Shred" style="rounded=1;fillColor=#dae8fc;" vertex="1" parent="1">
+          <mxGeometry x="1700" y="360" width="160" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="13" value="Melt" style="rounded=1;fillColor=#dae8fc;" vertex="1" parent="1">
+          <mxGeometry x="1900" y="360" width="160" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="14" value="XOR: Recyclable materials?" style="rhombus;fillColor=#fff2cc;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="2100" y="360" width="160" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="15" value="Recycle" style="rounded=1;fillColor=#dae8fc;" vertex="1" parent="1">
+          <mxGeometry x="2300" y="260" width="160" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="16" value="Waste" style="rounded=1;fillColor=#dae8fc;" vertex="1" parent="1">
+          <mxGeometry x="2300" y="460" width="160" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="17" value="XOR Join" style="rhombus;fillColor=#fff2cc;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="2500" y="360" width="160" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="18" value="End" style="rounded=1;fillColor=#dae8fc;" vertex="1" parent="1">
+          <mxGeometry x="2700" y="300" width="160" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="1000" edge="1" parent="1" source="2" target="3" value="">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="1001" edge="1" parent="1" source="3" target="4" value="">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="1002" edge="1" parent="1" source="4" target="5" value="yes">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="1003" edge="1" parent="1" source="4" target="6" value="no">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="1004" edge="1" parent="1" source="6" target="7" value="">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="1005" edge="1" parent="1" source="7" target="8" value="">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="1006" edge="1" parent="1" source="8" target="9" value="">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="1007" edge="1" parent="1" source="8" target="10" value="">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="1008" edge="1" parent="1" source="9" target="11" value="">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="1009" edge="1" parent="1" source="10" target="11" value="">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="1010" edge="1" parent="1" source="11" target="12" value="">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="1011" edge="1" parent="1" source="12" target="13" value="">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="1012" edge="1" parent="1" source="13" target="14" value="">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="1013" edge="1" parent="1" source="14" target="15" value="yes">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="1014" edge="1" parent="1" source="14" target="16" value="no">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="1015" edge="1" parent="1" source="15" target="17" value="">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="1016" edge="1" parent="1" source="16" target="17" value="">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="1017" edge="1" parent="1" source="17" target="18" value="">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
