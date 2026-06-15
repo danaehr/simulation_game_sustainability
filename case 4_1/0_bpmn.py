@@ -12,7 +12,7 @@ from pm4py.visualization.heuristics_net import visualizer as hn_vis
 # 1. LOAD DATA
 # ==================================================
 
-df = pd.read_csv("case 3_2/data.csv")
+df = pd.read_csv("data.csv")
 
 df["timestamp"] = pd.to_datetime(df["timestamp"])
 
