@@ -11,19 +11,17 @@ from pm4py.objects.bpmn.exporter import exporter as bpmn_exporter
 
 
 # ==================================================
-# 1. SETTINGS
+#%% 1. SETTINGS
 # ==================================================
 
 INPUT_PATH = "data.csv"
 
 OUTPUT_INTERVIEW_BPMN = "01_interview_based_bpmn.drawio"
-OUTPUT_LOG_BPMN = "03_log_based_bpmn_with_probabilities.drawio"
-OUTPUT_COMPLETE_LOG_BPMN = "04_complete_log_based_bpmn_all_paths.drawio"
 OUTPUT_PM4PY_BPMN = "12_pm4py_inductive_miner_bpmn"
 
 
 # ==================================================
-# 2. LOAD DATA
+#%% 2. LOAD DATA
 # ==================================================
 
 df = pd.read_csv(INPUT_PATH)
@@ -43,7 +41,7 @@ print(f"Cases: {df['case:concept:name'].nunique()}")
 
 
 # ==================================================
-# 3. BASIC ANALYSIS
+#%% 3. BASIC ANALYSIS
 # ==================================================
 
 print("\n=== Activity overview ===")
@@ -236,8 +234,6 @@ write_drawio(
 # ==================================================
 # 7. AUTOMATIC PM4PY BPMN FROM INDUCTIVE MINER
 # ==================================================
-
-OUTPUT_PM4PY_BPMN = "12_pm4py_inductive_miner_bpmn"
 
 print("\n✔ Creating automatic PM4Py BPMN with Inductive Miner")
 
