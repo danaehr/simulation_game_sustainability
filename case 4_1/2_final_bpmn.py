@@ -1,11 +1,13 @@
 import pandas as pd
-from collections import Counter
-
 from pm4py.objects.conversion.log import converter as log_converter
 from pm4py.algo.discovery.dfg import algorithm as dfg_discovery
 from pm4py.visualization.dfg import visualizer as dfg_vis
 from pm4py.algo.discovery.heuristics import algorithm as heuristics_miner
 from pm4py.visualization.heuristics_net import visualizer as hn_vis
+from pm4py.algo.discovery.inductive import algorithm as inductive_miner
+from pm4py.objects.conversion.process_tree import converter as pt_converter
+from pm4py.visualization.bpmn import visualizer as bpmn_vis
+from pm4py.objects.bpmn.exporter import exporter as bpmn_exporter
 
 
 # ==================================================
@@ -17,6 +19,7 @@ INPUT_PATH = "data.csv"
 OUTPUT_INTERVIEW_BPMN = "01_interview_based_bpmn.drawio"
 OUTPUT_LOG_BPMN = "03_log_based_bpmn_with_probabilities.drawio"
 OUTPUT_COMPLETE_LOG_BPMN = "04_complete_log_based_bpmn_all_paths.drawio"
+OUTPUT_PM4PY_BPMN = "12_pm4py_inductive_miner_bpmn"
 
 
 # ==================================================
@@ -59,78 +62,7 @@ for i, (case_id, trace) in enumerate(traces.items()):
 
 
 # ==================================================
-# 4. CENTRAL LOG STATISTICS
-# ==================================================
-
-transition_counts = Counter()
-end_counts = Counter()
-
-for trace in traces:
-    if not trace:
-        continue
-
-    end_counts[trace[-1]] += 1
-
-    for i in range(len(trace) - 1):
-        transition_counts[(trace[i], trace[i + 1])] += 1
-
-
-def global_prob(source, target):
-    if target == "END":
-        count = end_counts.get(source, 0)
-    else:
-        count = transition_counts.get((source, target), 0)
-
-    prob = count / total_cases if total_cases > 0 else 0
-    return f"{prob:.1%}"
-
-
-def global_prob_precise(source, target):
-    if target == "END":
-        count = end_counts.get(source, 0)
-    else:
-        count = transition_counts.get((source, target), 0)
-
-    prob = count / total_cases if total_cases > 0 else 0
-    return f"{prob:.3%}"
-
-
-# ==================================================
-# 5. XOR PROBABILITIES
-# ==================================================
-
-damaged_count = sum(
-    1 for trace in traces
-    if "Place battery cell in safety box" in trace
-)
-
-normal_count = total_cases - damaged_count
-
-print("\n=== XOR probabilities ===")
-print(f"Damaged path: {damaged_count} cases ({damaged_count / total_cases:.1%})")
-print(f"Normal path: {normal_count} cases ({normal_count / total_cases:.1%})")
-
-
-# ==================================================
-# 6. REWORK DETECTION
-# ==================================================
-
-print("\n=== Rework detection ===")
-
-rework_cases = 0
-
-for case_id, trace in traces.items():
-    repeats = len(trace) - len(set(trace))
-
-    if repeats > 0:
-        rework_cases += 1
-        print(f"{case_id}: {repeats} repeated activities")
-
-print(f"Cases with rework: {rework_cases}")
-
-
-# ==================================================
-# 7. PM4PY PROCESS DISCOVERY
+# 4. PM4PY PROCESS DISCOVERY
 # ==================================================
 
 event_log = log_converter.apply(df)
@@ -147,7 +79,7 @@ hn_vis.view(gviz2)
 
 
 # ==================================================
-# 8. DRAW.IO HELPERS
+# 5. DRAW.IO HELPERS
 # ==================================================
 
 def style_for(kind):
@@ -235,7 +167,7 @@ def write_drawio(output_path, diagram_name, nodes, edges, skip_zero=True):
 
 
 # ==================================================
-# 9. INTERVIEW-BASED BPMN
+# 6. INTERVIEW-BASED BPMN
 # ==================================================
 
 interview_nodes = [
@@ -301,145 +233,37 @@ write_drawio(
     edges=interview_edges
 )
 
-
 # ==================================================
-# 10. CLEAN LOG-BASED BPMN
+# 7. AUTOMATIC PM4PY BPMN FROM INDUCTIVE MINER
 # ==================================================
 
-log_nodes = [
-    (2, "Start", 80, 360, "start"),
-    (3, "Battery cell completely discharged", 260, 360, "task"),
-    (4, "Check battery cell for damage", 560, 360, "task"),
-    (5, "XOR: Next step?", 860, 350, "xor"),
+OUTPUT_PM4PY_BPMN = "12_pm4py_inductive_miner_bpmn"
 
-    (6, "Check capacity of safety box", 1160, 180, "task"),
-    (7, "XOR: Safety box full?", 1460, 170, "xor"),
-    (8, "Seal full safety box", 1760, 80, "task"),
-    (9, "Store safety box", 2060, 80, "task"),
-    (10, "Prepare new safety box", 2360, 80, "task"),
-    (11, "Place battery cell in safety box", 2660, 180, "task"),
-    (12, "End", 2960, 180, "end"),
+print("\n✔ Creating automatic PM4Py BPMN with Inductive Miner")
 
-    (13, "Open battery cell", 1160, 560, "task"),
-    (14, "Collect electrolyte separately", 1460, 560, "task"),
-    (15, "Clean electrodes", 1760, 560, "task"),
-    (16, "Shred electrodes", 2060, 560, "task"),
-    (17, "Melt down solid materials", 2360, 560, "task"),
-    (18, "Collect recyclable materials", 2660, 560, "task"),
-    (19, "Dispose of non-reusable materials", 2960, 560, "task"),
-    (20, "End", 3260, 560, "end")
-]
+process_tree = inductive_miner.apply(event_log)
 
-log_edges = [
-    (2, 3, ""),
-    (3, 4, global_prob("Battery cell completely discharged", "Check battery cell for damage")),
-    (4, 5, ""),
-
-    (5, 6, global_prob("Check battery cell for damage", "Check the capacity of the safety box")),
-    (6, 7, ""),
-    (7, 8, global_prob("Check the capacity of the safety box", "Seal full safety box")),
-    (8, 9, global_prob("Seal full safety box", "Store safety box")),
-    (9, 10, global_prob("Store safety box", "Prepare new safety box")),
-    (10, 11, global_prob("Prepare new safety box", "Place battery cell in safety box")),
-    (7, 11, global_prob("Check the capacity of the safety box", "Place battery cell in safety box")),
-    (11, 12, ""),
-
-    (5, 13, global_prob("Check battery cell for damage", "Open battery cell")),
-    (13, 14, global_prob("Open battery cell", "Collect electrolyte separately")),
-    (14, 15, global_prob("Collect electrolyte separately", "Clean electrodes")),
-    (15, 16, global_prob("Clean electrodes", "Shred electrodes")),
-    (16, 17, global_prob("Shred electrodes", "Melt down solid materials")),
-    (17, 18, global_prob("Melt down solid materials", "Collect recyclable materials")),
-    (18, 19, global_prob("Collect recyclable materials", "Dispose of non-reusable materials")),
-    (19, 20, "")
-]
-
-write_drawio(
-    output_path=OUTPUT_LOG_BPMN,
-    diagram_name="Log-based BPMN",
-    nodes=log_nodes,
-    edges=log_edges
+bpmn = pt_converter.apply(
+    process_tree,
+    variant=pt_converter.Variants.TO_BPMN
 )
 
+# Add global activity probabilities to BPMN task labels
+for node in bpmn.get_nodes():
+    name = node.get_name()
 
-# ==================================================
-# 11. COMPLETE LOG-BASED BPMN WITH ALL PATHS
-# ==================================================
+    if name in activity_counts:
+        count = activity_counts[name]
+        prob = count / total_cases if total_cases > 0 else 0
 
-complete_nodes = [
-    (2, "Start", 80, 420, "start"),
-    (3, "Battery cell completely discharged", 260, 420, "task"),
-    (4, "Check battery cell for damage", 560, 420, "task"),
-    (5, "XOR: Battery damaged?", 860, 410, "xor"),
+        node.set_name(f"{name}\n{prob:.1%}")
 
-    (6, "Check capacity of safety box", 1160, 170, "task"),
-    (7, "XOR: Safety box full?", 1460, 160, "xor"),
-    (8, "Seal full safety box", 1760, 60, "task"),
-    (9, "Store safety box", 2060, 60, "task"),
-    (10, "Prepare new safety box", 2360, 60, "task"),
-    (11, "Place battery cell in safety box", 2660, 170, "task"),
-    (12, "End safety box path", 2960, 170, "end"),
+gviz_bpmn = bpmn_vis.apply(bpmn)
 
-    (13, "Open battery cell", 1160, 620, "task"),
-    (14, "Collect electrolyte separately", 1460, 620, "task"),
-    (15, "Clean electrodes", 1760, 620, "task"),
-    (16, "XOR: Cleaning rework?", 2060, 610, "xor"),
-    (17, "Shred electrodes", 2360, 620, "task"),
-    (18, "Melt down solid materials", 2660, 620, "task"),
-    (19, "Collect recyclable materials", 2960, 620, "task"),
-    (20, "Dispose of non-reusable materials", 3260, 620, "task"),
-    (21, "End recycling path", 3560, 620, "end"),
+bpmn_vis.view(gviz_bpmn)
+bpmn_vis.save(gviz_bpmn, OUTPUT_PM4PY_BPMN + ".png")
 
-    (22, "End incomplete log", 3560, 360, "end")
-]
+bpmn_exporter.apply(bpmn, OUTPUT_PM4PY_BPMN + ".bpmn")
 
-complete_edges = [
-    (2, 3, ""),
-    (3, 4, global_prob_precise("Battery cell completely discharged", "Check battery cell for damage")),
-    (4, 5, ""),
-
-    (3, 22, global_prob_precise("Battery cell completely discharged", "END")),
-    (4, 22, global_prob_precise("Check battery cell for damage", "END")),
-
-    (5, 6, global_prob_precise("Check battery cell for damage", "Check the capacity of the safety box")),
-    (6, 7, ""),
-    (7, 8, global_prob_precise("Check the capacity of the safety box", "Seal full safety box")),
-    (8, 9, global_prob_precise("Seal full safety box", "Store safety box")),
-    (9, 10, global_prob_precise("Store safety box", "Prepare new safety box")),
-    (10, 11, global_prob_precise("Prepare new safety box", "Place battery cell in safety box")),
-    (7, 11, global_prob_precise("Check the capacity of the safety box", "Place battery cell in safety box")),
-    (11, 12, ""),
-
-    (5, 13, global_prob_precise("Check battery cell for damage", "Open battery cell")),
-    (13, 14, global_prob_precise("Open battery cell", "Collect electrolyte separately")),
-    (14, 15, global_prob_precise("Collect electrolyte separately", "Clean electrodes")),
-
-    (13, 22, global_prob_precise("Open battery cell", "END")),
-    (14, 22, global_prob_precise("Collect electrolyte separately", "END")),
-    (15, 22, global_prob_precise("Clean electrodes", "END")),
-    (17, 22, global_prob_precise("Shred electrodes", "END")),
-    (18, 22, global_prob_precise("Melt down solid materials", "END")),
-    (19, 22, global_prob_precise("Collect recyclable materials", "END")),
-
-    (15, 16, ""),
-    (16, 15, global_prob_precise("Clean electrodes", "Clean electrodes")),
-    (16, 17, global_prob_precise("Clean electrodes", "Shred electrodes")),
-
-    (17, 18, global_prob_precise("Shred electrodes", "Melt down solid materials")),
-    (18, 19, global_prob_precise("Melt down solid materials", "Collect recyclable materials")),
-    (19, 20, global_prob_precise("Collect recyclable materials", "Dispose of non-reusable materials")),
-    (20, 21, "")
-]
-
-write_drawio(
-    output_path=OUTPUT_COMPLETE_LOG_BPMN,
-    diagram_name="Complete Log-based BPMN",
-    nodes=complete_nodes,
-    edges=complete_edges
-)
-
-print("\n✔ Pipeline finished")
-print("Created:")
-print(f"- {OUTPUT_INTERVIEW_BPMN}")
-print(f"- {OUTPUT_LOG_BPMN}")
-print(f"- {OUTPUT_COMPLETE_LOG_BPMN}")
+print(f"✔ Created: {OUTPUT_PM4PY_BPMN}.png")
+print(f"✔ Created: {OUTPUT_PM4PY_BPMN}.bpmn")
