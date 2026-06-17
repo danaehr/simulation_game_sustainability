@@ -215,6 +215,11 @@ budget_absolut = round(budget/100 * total_price_min,2)
 #%%
 best_area = sorted(co2_price, key=co2_price.get, reverse=False)[0]
 
+#to do
+# alle Bereiche mit identischem co2_price so sortierten, dass meiste Kosten zuerst kommen.
+# anschließend so durchiterieren, dass alles umgewandelt wird bis zu diesem Area kein Scratch mehr vorhanden ist oder das Budget aufgebraucht ist
+
+
 budget_remaining = budget_absolut
 
 def invert_strategy(s):
