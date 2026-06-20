@@ -1,0 +1,166 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Complete Log-based BPMN" id="0">
+    <mxGraphModel dx="2357" dy="1238" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="2" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;strokeWidth=2;fontSize=16;" value="Start" vertex="1">
+          <mxGeometry height="80" width="80" x="80" y="420" as="geometry" />
+        </mxCell>
+        <mxCell id="3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1f2d3d;strokeColor=#ffffff;fontColor=#ffffff;strokeWidth=1;fontSize=16;" value="Battery cell completely discharged" vertex="1">
+          <mxGeometry height="75" width="240" x="260" y="420" as="geometry" />
+        </mxCell>
+        <mxCell id="4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1f2d3d;strokeColor=#ffffff;fontColor=#ffffff;strokeWidth=1;fontSize=16;" value="Check battery cell for damage" vertex="1">
+          <mxGeometry height="75" width="240" x="560" y="420" as="geometry" />
+        </mxCell>
+        <mxCell id="5" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#1f2d3d;strokeColor=#ffffff;fontColor=#ffffff;strokeWidth=2;fontSize=16;" value="XOR: Battery damaged?" vertex="1">
+          <mxGeometry height="100" width="190" x="860" y="410" as="geometry" />
+        </mxCell>
+        <mxCell id="6" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1f2d3d;strokeColor=#ffffff;fontColor=#ffffff;strokeWidth=1;fontSize=16;" value="Check capacity of safety box" vertex="1">
+          <mxGeometry height="75" width="240" x="1160" y="170" as="geometry" />
+        </mxCell>
+        <mxCell id="7" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#1f2d3d;strokeColor=#ffffff;fontColor=#ffffff;strokeWidth=2;fontSize=16;" value="XOR: Safety box full?" vertex="1">
+          <mxGeometry height="100" width="190" x="1460" y="160" as="geometry" />
+        </mxCell>
+        <mxCell id="8" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1f2d3d;strokeColor=#ffffff;fontColor=#ffffff;strokeWidth=1;fontSize=16;" value="Seal full safety box" vertex="1">
+          <mxGeometry height="75" width="240" x="1760" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="9" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1f2d3d;strokeColor=#ffffff;fontColor=#ffffff;strokeWidth=1;fontSize=16;" value="Store safety box" vertex="1">
+          <mxGeometry height="75" width="240" x="2060" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="10" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1f2d3d;strokeColor=#ffffff;fontColor=#ffffff;strokeWidth=1;fontSize=16;" value="Prepare new safety box" vertex="1">
+          <mxGeometry height="75" width="240" x="2360" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="11" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1f2d3d;strokeColor=#ffffff;fontColor=#ffffff;strokeWidth=1;fontSize=16;" value="Place battery cell in safety box" vertex="1">
+          <mxGeometry height="75" width="240" x="2660" y="170" as="geometry" />
+        </mxCell>
+        <mxCell id="12" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=3;fontSize=14;" value="End safety box path" vertex="1">
+          <mxGeometry height="100" width="100" x="2960" y="170" as="geometry" />
+        </mxCell>
+        <mxCell id="13" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1f2d3d;strokeColor=#ffffff;fontColor=#ffffff;strokeWidth=1;fontSize=16;" value="Open battery cell" vertex="1">
+          <mxGeometry height="75" width="240" x="1160" y="620" as="geometry" />
+        </mxCell>
+        <mxCell id="14" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1f2d3d;strokeColor=#ffffff;fontColor=#ffffff;strokeWidth=1;fontSize=16;" value="Collect electrolyte separately" vertex="1">
+          <mxGeometry height="75" width="240" x="1460" y="620" as="geometry" />
+        </mxCell>
+        <mxCell id="15" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1f2d3d;strokeColor=#ffffff;fontColor=#ffffff;strokeWidth=1;fontSize=16;" value="Clean electrodes" vertex="1">
+          <mxGeometry height="75" width="240" x="1760" y="620" as="geometry" />
+        </mxCell>
+        <mxCell id="16" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#1f2d3d;strokeColor=#ffffff;fontColor=#ffffff;strokeWidth=2;fontSize=16;" value="XOR: Cleaning rework?" vertex="1">
+          <mxGeometry height="100" width="190" x="2060" y="610" as="geometry" />
+        </mxCell>
+        <mxCell id="17" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1f2d3d;strokeColor=#ffffff;fontColor=#ffffff;strokeWidth=1;fontSize=16;" value="Shred electrodes" vertex="1">
+          <mxGeometry height="75" width="240" x="2360" y="620" as="geometry" />
+        </mxCell>
+        <mxCell id="18" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1f2d3d;strokeColor=#ffffff;fontColor=#ffffff;strokeWidth=1;fontSize=16;" value="Melt down solid materials" vertex="1">
+          <mxGeometry height="75" width="240" x="2660" y="620" as="geometry" />
+        </mxCell>
+        <mxCell id="19" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1f2d3d;strokeColor=#ffffff;fontColor=#ffffff;strokeWidth=1;fontSize=16;" value="Collect recyclable materials" vertex="1">
+          <mxGeometry height="75" width="240" x="2960" y="620" as="geometry" />
+        </mxCell>
+        <mxCell id="20" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1f2d3d;strokeColor=#ffffff;fontColor=#ffffff;strokeWidth=1;fontSize=16;" value="Dispose of non-reusable materials" vertex="1">
+          <mxGeometry height="75" width="240" x="3260" y="620" as="geometry" />
+        </mxCell>
+        <mxCell id="21" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=3;fontSize=14;" value="End recycling path" vertex="1">
+          <mxGeometry height="100" width="100" x="3560" y="620" as="geometry" />
+        </mxCell>
+        <mxCell id="22" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=3;fontSize=14;" value="End incomplete log" vertex="1">
+          <mxGeometry height="100" width="100" x="3560" y="360" as="geometry" />
+        </mxCell>
+        <mxCell id="1000" edge="1" parent="1" source="2" style="endArrow=block;html=1;rounded=0;strokeColor=#000000;fontColor=#000000;fontSize=14;labelBackgroundColor=#ffffff;" target="3" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1001" edge="1" parent="1" source="3" style="endArrow=block;html=1;rounded=0;strokeColor=#000000;fontColor=#000000;fontSize=14;labelBackgroundColor=#ffffff;" target="4" value="99.940%">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1002" edge="1" parent="1" source="4" style="endArrow=block;html=1;rounded=0;strokeColor=#000000;fontColor=#000000;fontSize=14;labelBackgroundColor=#ffffff;" target="5" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1003" edge="1" parent="1" source="3" style="endArrow=block;html=1;rounded=0;strokeColor=#000000;fontColor=#000000;fontSize=14;labelBackgroundColor=#ffffff;" target="22" value="0.060%">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1004" edge="1" parent="1" source="4" style="endArrow=block;html=1;rounded=0;strokeColor=#000000;fontColor=#000000;fontSize=14;labelBackgroundColor=#ffffff;" target="22" value="0.160%">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="870" y="390" />
+              <mxPoint x="2200" y="370" />
+              <mxPoint x="3320" y="370" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="1005" edge="1" parent="1" source="5" style="endArrow=block;html=1;rounded=0;strokeColor=#000000;fontColor=#000000;fontSize=14;labelBackgroundColor=#ffffff;" target="6" value="24.645%">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1006" edge="1" parent="1" source="6" style="endArrow=block;html=1;rounded=0;strokeColor=#000000;fontColor=#000000;fontSize=14;labelBackgroundColor=#ffffff;" target="7" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1007" edge="1" parent="1" source="7" style="endArrow=block;html=1;rounded=0;strokeColor=#000000;fontColor=#000000;fontSize=14;labelBackgroundColor=#ffffff;" target="8" value="1.301%">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1008" edge="1" parent="1" source="8" style="endArrow=block;html=1;rounded=0;strokeColor=#000000;fontColor=#000000;fontSize=14;labelBackgroundColor=#ffffff;" target="9" value="1.301%">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1009" edge="1" parent="1" source="9" style="endArrow=block;html=1;rounded=0;strokeColor=#000000;fontColor=#000000;fontSize=14;labelBackgroundColor=#ffffff;" target="10" value="1.301%">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1010" edge="1" parent="1" source="10" style="endArrow=block;html=1;rounded=0;strokeColor=#000000;fontColor=#000000;fontSize=14;labelBackgroundColor=#ffffff;" target="11" value="1.301%">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1011" edge="1" parent="1" source="7" style="endArrow=block;html=1;rounded=0;strokeColor=#000000;fontColor=#000000;fontSize=14;labelBackgroundColor=#ffffff;" target="11" value="23.343%">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1012" edge="1" parent="1" source="11" style="endArrow=block;html=1;rounded=0;strokeColor=#000000;fontColor=#000000;fontSize=14;labelBackgroundColor=#ffffff;" target="12" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1013" edge="1" parent="1" source="5" style="endArrow=block;html=1;rounded=0;strokeColor=#000000;fontColor=#000000;fontSize=14;labelBackgroundColor=#ffffff;" target="13" value="75.135%">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1014" edge="1" parent="1" source="13" style="endArrow=block;html=1;rounded=0;strokeColor=#000000;fontColor=#000000;fontSize=14;labelBackgroundColor=#ffffff;" target="14" value="75.055%">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1015" edge="1" parent="1" source="14" style="endArrow=block;html=1;rounded=0;strokeColor=#000000;fontColor=#000000;fontSize=14;labelBackgroundColor=#ffffff;" target="15" value="75.015%">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1016" edge="1" parent="1" source="13" style="endArrow=block;html=1;rounded=0;strokeColor=#000000;fontColor=#000000;fontSize=14;labelBackgroundColor=#ffffff;" target="22" value="0.080%">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1017" edge="1" parent="1" source="14" style="endArrow=block;html=1;rounded=0;strokeColor=#000000;fontColor=#000000;fontSize=14;labelBackgroundColor=#ffffff;" target="22" value="0.040%">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1018" edge="1" parent="1" source="15" style="endArrow=block;html=1;rounded=0;strokeColor=#000000;fontColor=#000000;fontSize=14;labelBackgroundColor=#ffffff;" target="22" value="0.100%">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1019" edge="1" parent="1" source="17" style="endArrow=block;html=1;rounded=0;strokeColor=#000000;fontColor=#000000;fontSize=14;labelBackgroundColor=#ffffff;" target="22" value="0.020%">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1020" edge="1" parent="1" source="18" style="endArrow=block;html=1;rounded=0;strokeColor=#000000;fontColor=#000000;fontSize=14;labelBackgroundColor=#ffffff;" target="22" value="0.080%">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1021" edge="1" parent="1" source="19" style="endArrow=block;html=1;rounded=0;strokeColor=#000000;fontColor=#000000;fontSize=14;labelBackgroundColor=#ffffff;" target="22" value="0.080%">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1022" edge="1" parent="1" source="15" style="endArrow=block;html=1;rounded=0;strokeColor=#000000;fontColor=#000000;fontSize=14;labelBackgroundColor=#ffffff;" target="16" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1023" edge="1" parent="1" source="16" style="endArrow=block;html=1;rounded=0;strokeColor=#000000;fontColor=#000000;fontSize=14;labelBackgroundColor=#ffffff;" target="15" value="38.799%">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1024" edge="1" parent="1" source="16" style="endArrow=block;html=1;rounded=0;strokeColor=#000000;fontColor=#000000;fontSize=14;labelBackgroundColor=#ffffff;" target="17" value="74.915%">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1025" edge="1" parent="1" source="17" style="endArrow=block;html=1;rounded=0;strokeColor=#000000;fontColor=#000000;fontSize=14;labelBackgroundColor=#ffffff;" target="18" value="74.895%">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1026" edge="1" parent="1" source="18" style="endArrow=block;html=1;rounded=0;strokeColor=#000000;fontColor=#000000;fontSize=14;labelBackgroundColor=#ffffff;" target="19" value="74.815%">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1027" edge="1" parent="1" source="19" style="endArrow=block;html=1;rounded=0;strokeColor=#000000;fontColor=#000000;fontSize=14;labelBackgroundColor=#ffffff;" target="20" value="74.735%">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1028" edge="1" parent="1" source="20" style="endArrow=block;html=1;rounded=0;strokeColor=#000000;fontColor=#000000;fontSize=14;labelBackgroundColor=#ffffff;" target="21" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
